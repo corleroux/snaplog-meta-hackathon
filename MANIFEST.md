@@ -1,16 +1,20 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `f25ec44bc2eecc539545c596c8161df9b3acfab2`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `71532cd8453ee1680ac1edff2aa6a829334b9e3e`.
 
 - Branch: `staging`
-- Date: 2026-10-30T21:29:20+02:00
+- Date: 2026-10-31T00:32:49+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `9bfc8a3f0779c457e7223dbda57bc08f8135725a`
-- Incremental patch: `_none_`
+- Previous source commit: `f25ec44bc2eecc539545c596c8161df9b3acfab2`
+- Incremental patch: `0003-f25ec44-to-71532cd.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+supabase/.sb.env.example
+supabase/functions/_shared/geminiClient.ts
+supabase/functions/_shared/scanSession.ts
+supabase/functions/extract-fabric-document/index.ts
+supabase/functions/extract-vendor-document/index.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -37,5 +41,13 @@ docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-02-demo-writeup-submission.md
 scripts/build-submission.sh
 supabase/functions/_shared/catalogueSchemaRegistry.ts
+supabase/functions/_shared/providers/geminiProvider.ts
+supabase/functions/_shared/providers/getProvider.ts
+supabase/functions/_shared/providers/types.ts
 supabase/functions/_tests/catalogueSchemaRegistry.test.ts
+supabase/functions/_tests/fixtures/gemini/fabric-product-tag.json
+supabase/functions/_tests/fixtures/gemini/vendor-card.json
+supabase/functions/_tests/geminiProvider.golden.test.ts
+supabase/functions/_tests/getProvider.test.ts
 supabase/migrations/083_catalogue_types.sql
+supabase/migrations/084_scan_sessions_run_fields.sql
