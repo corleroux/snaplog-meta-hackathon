@@ -77,7 +77,7 @@ Every model the demo calls at runtime is Meta.
 - `new-files/` — verbatim copies of files added since the baseline.
 - `MANIFEST.md` — source commit, branch, date and file lists.
 - `docs/plans/` — one plan per hackathon task.
-- `eval/` — evaluation manifest (captures themselves are excluded from the public repo).
+- `eval/` — evaluation manifest (captures themselves are excluded from the public repo; added in FR-MOD-04).
 
 ## Submission checklist
 
