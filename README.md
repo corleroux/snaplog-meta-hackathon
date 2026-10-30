@@ -8,39 +8,46 @@ This repository contains only the event-week work for [Snaplog](https://github.c
 
 A mobile-first **fabric catalogue** for fashion buyers at international trade fairs. A buyer photographs a fabric swatch and the vendor's business card or stall front; a Supabase Edge Function extracts structured fields with Gemini; the buyer reviews and commits; the catalogue is searchable. Stack: React 19 + TypeScript + Vite + Capacitor, Supabase (Postgres, Storage, Edge Functions).
 
-## What we built this week
+## What we are building this week
 
-- **Schema registry** — catalogue types are versioned schema definitions (fabric, garment), not hard-coded categories.
-- **Provider interface** — one extraction interface with implementations for Gemini (baseline), **Muse Spark via Meta Model API**, and a Meta open-weights model on Modal.
-- **Garments as a second category** — added purely by declaring a new schema, with no application code changes.
-- **Video pipeline** — hand long videos to Modal; **SAM 3.1** isolates items; each item is extracted and written back to Supabase.
-- **Benchmark runner** — side-by-side accuracy, latency and cost comparison across providers.
-- **Schema-driven review UI** — capture and review screens adapt to the active schema and flag low-confidence fields.
+| Capability | Status |
+|---|---|
+| Schema registry — catalogue types as config | In progress |
+| Provider interface (Gemini, Muse Spark, open weights) | In progress |
+| Garments as a second category, no code changes | In progress |
+| Video pipeline with SAM 3.1 item isolation on Modal | In progress |
+| Benchmark runner: accuracy, latency, cost | In progress |
+| Schema-driven review UI | In progress |
 
 Built with **Muse Spark Open** and Meta's model stack.
 
 ## Rebuild the demo
 
 ```bash
-# 1. Clone the pre-existing codebase at the hackathon baseline
-git clone --branch hackathon-baseline https://github.com/corleroux/snaplog.git snaplog-hackathon
-cd snaplog-hackathon
+# 1. Clone this submission repo
+git clone https://github.com/corleroux/snaplog-meta-hackathon.git
+cd snaplog-meta-hackathon
 
-# 2. Apply patches for files modified during the event
-git apply ../patches/snaplog-modified.patch
+# 2. Clone the pre-existing codebase at the hackathon baseline
+git clone --branch hackathon-baseline https://github.com/corleroux/snaplog.git ../snaplog-hackathon
+cd ../snaplog-hackathon
 
-# 3. Copy new files (providers, registry, schemas, video pipeline, benchmark,
-#    docs/plans, eval manifest, write-up) into place
-cp -R ../new-files/* .
+# 3. Apply all incremental patches in order
+git apply ../snaplog-meta-hackathon/patches/*.patch
 
-# 4. Install dependencies and configure environment
+# 4. Copy new files (providers, registry, schemas, video pipeline, benchmark,
+#    docs/plans, eval manifest, write-up) into place.
+#    Use `cp -a` so hidden directories such as .opencode/ are included.
+cp -a ../snaplog-meta-hackathon/new-files/. .
+
+# 5. Install dependencies and configure environment
 pnpm install
 cp .env.example .env
 cp supabase/.sb.env.example supabase/.sb.env
 # Fill in VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY in .env
 # Fill in edge-function secrets in supabase/.sb.env
 
-# 5. Run the app locally
+# 6. Run the app locally
 pnpm dev
 ```
 
@@ -66,7 +73,7 @@ Every model the demo calls at runtime is Meta.
 
 ## Submission contents
 
-- `patches/snaplog-modified.patch` — cumulative diff of files modified since the baseline.
+- `patches/*.patch` — incremental diffs of files modified since the baseline.
 - `new-files/` — verbatim copies of files added since the baseline.
 - `MANIFEST.md` — source commit, branch, date and file lists.
 - `docs/plans/` — one plan per hackathon task.

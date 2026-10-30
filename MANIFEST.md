@@ -1,20 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `86fc181c2205c6997ca4b77491055bd60f4b277e`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `c8b0c9e36ad83b1419b3a6a4acd957b229884fc0`.
 
 - Branch: `staging`
-- Date: 2026-10-30T20:37:14+02:00
+- Date: 2026-10-30T20:48:23+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `42570b3cb62a04ad37c988e1b6b59de3828ba640`
-- Incremental patch: `42570b3-to-86fc181.patch`
+- Previous source commit: `86fc181c2205c6997ca4b77491055bd60f4b277e`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since baseline
 
-.opencode/agents/design-governance-agent.md
-.opencode/agents/ui-design-agent.md
-.opencode/agents/ux-reviewer.md
-AGENTS.md
-README.md
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -26,7 +22,6 @@ README.md
 .opencode/agents/tester.md
 .opencode/opencode.jsonc
 Event Details.md
-docs/Hackathon PRD Snaplog.md:Zone.Identifier
 docs/PRD.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
