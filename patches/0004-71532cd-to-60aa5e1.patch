@@ -1,0 +1,185 @@
+diff --git a/supabase/.sb.env.example b/supabase/.sb.env.example
+index 771b74d..b90844d 100644
+--- a/supabase/.sb.env.example
++++ b/supabase/.sb.env.example
+@@ -14,10 +14,19 @@
+ 
+ # --- REQUIRED ---
+ 
++# Meta Model API key (https://dev.meta.ai/ — create a MODEL_API_KEY)
++# Used by: extract-fabric-document, extract-vendor-document via the
++#          muse-spark provider (the default since FR-MOD-02a,
++#          _shared/providers/museSparkProvider.ts) — Bearer auth against
++#          https://api.meta.ai/v1/chat/completions.
++# Without it, extraction with the default provider returns 500
++# "MODEL_API_KEY is not configured".
++MODEL_API_KEY=
++
+ # Google Gemini API key (https://aistudio.google.com/apikey)
+-# Used by: extract-fabric-document, extract-vendor-document,
+-#          health-check, _shared/envValidation.ts
+-# Without it, all AI extraction returns 500 "not configured".
++# Used by: the gemini provider (EXTRACTION_PROVIDER=gemini), health-check,
++#          _shared/envValidation.ts (still required there — Gemini stays
++#          configured as the baseline and FR-MOD-03 fallback candidate).
+ GEMINI_API_KEY=
+ 
+ # Resend API key (https://resend.com/api-keys)
+@@ -67,9 +76,20 @@ POSTHOG_HOST=https://us.i.posthog.com
+ # Default: gemini-flash-lite-latest (_shared/geminiClient.ts)
+ GEMINI_MODEL=
+ 
++# Muse Spark model override (FR-MOD-02a).
++# Default: muse-spark-1.3 — Standard mode (content NOT used to train Meta
++# models). Mode rule (owner directive): Standard `muse-spark-1.3` ONLY for
++# vendor-card PII, the benchmark and the demo. Contributor mode
++# (`muse-spark-1.3-contributor`, ~12x cheaper) may send prompts to Meta
++# training — use it only for dev iterations on non-PII images (garments,
++# swatches). The FR-MOD-04 benchmark runner hard-pins Standard mode.
++# Other Standard-mode IDs: muse-spark-1.1 (proven fallback).
++MUSE_SPARK_MODEL=
++
+ # Extraction provider used by extract-fabric-document /
+ # extract-vendor-document (FR-MOD-01, _shared/providers/getProvider.ts).
+-# Only 'gemini' exists today; Muse Spark and the Modal open-weights model
+-# land with FR-MOD-02/FR-MOD-03. Unknown values fail loudly (no fallback).
+-# Default: gemini
++# Available: 'gemini', 'muse-spark' (Modal open-weights lands with
++# FR-MOD-02b/FR-MOD-03). Unknown values fail loudly (no fallback until
++# FR-MOD-03).
++# Default: muse-spark (all-Meta demo runtime, FR-MOD-02a)
+ EXTRACTION_PROVIDER=
+diff --git a/supabase/functions/_shared/envValidation.ts b/supabase/functions/_shared/envValidation.ts
+index 004d324..0214ebb 100644
+--- a/supabase/functions/_shared/envValidation.ts
++++ b/supabase/functions/_shared/envValidation.ts
+@@ -9,18 +9,14 @@ interface EdgeFunctionEnv {
+   SUPABASE_URL: string
+   SUPABASE_ANON_KEY: string
+   SUPABASE_SERVICE_ROLE_KEY: string
+-  GEMINI_API_KEY: string
+-}
+-
+-const ENV_SCHEMA = {
+-  SUPABASE_URL: 'string' as const,
+-  SUPABASE_ANON_KEY: 'string' as const,
+-  SUPABASE_SERVICE_ROLE_KEY: 'string' as const,
+-  GEMINI_API_KEY: 'string' as const,
++  GEMINI_API_KEY?: string
++  MODEL_API_KEY?: string
++  MUSE_SPARK_MODEL?: string
+ }
+ 
+ /**
+- * Validates all required environment variables for edge functions.
++ * Validates required environment variables for edge functions.
++ * Required keys depend on the configured extraction provider.
+  * @throws Error if any environment variable is missing or invalid
+  * @returns Validated environment object
+  */
+@@ -50,9 +46,19 @@ export function validateEnv(): EdgeFunctionEnv {
+     errors.push('SUPABASE_SERVICE_ROLE_KEY is required')
+   }
+ 
+-  // Check GEMINI_API_KEY
+-  if (!env.GEMINI_API_KEY || typeof env.GEMINI_API_KEY !== 'string' || env.GEMINI_API_KEY.trim() === '') {
+-    errors.push('GEMINI_API_KEY is required')
++  // Provider-specific API keys
++  const provider = env.EXTRACTION_PROVIDER || 'muse-spark'
++
++  if (provider === 'gemini') {
++    if (!env.GEMINI_API_KEY || typeof env.GEMINI_API_KEY !== 'string' || env.GEMINI_API_KEY.trim() === '') {
++      errors.push('GEMINI_API_KEY is required when EXTRACTION_PROVIDER=gemini')
++    }
++  }
++
++  if (provider === 'muse-spark') {
++    if (!env.MODEL_API_KEY || typeof env.MODEL_API_KEY !== 'string' || env.MODEL_API_KEY.trim() === '') {
++      errors.push('MODEL_API_KEY is required when EXTRACTION_PROVIDER=muse-spark')
++    }
+   }
+ 
+   if (errors.length > 0) {
+@@ -63,7 +69,9 @@ export function validateEnv(): EdgeFunctionEnv {
+     SUPABASE_URL: supabaseUrl!,
+     SUPABASE_ANON_KEY: env.SUPABASE_ANON_KEY!,
+     SUPABASE_SERVICE_ROLE_KEY: env.SUPABASE_SERVICE_ROLE_KEY!,
+-    GEMINI_API_KEY: env.GEMINI_API_KEY!,
++    GEMINI_API_KEY: env.GEMINI_API_KEY,
++    MODEL_API_KEY: env.MODEL_API_KEY,
++    MUSE_SPARK_MODEL: env.MUSE_SPARK_MODEL,
+   }
+ }
+ 
+diff --git a/supabase/functions/extract-fabric-document/index.ts b/supabase/functions/extract-fabric-document/index.ts
+index 6232a7e..b51d105 100644
+--- a/supabase/functions/extract-fabric-document/index.ts
++++ b/supabase/functions/extract-fabric-document/index.ts
+@@ -6,7 +6,7 @@
+  * CANONICAL ARCHITECTURE RULES:
+  * - MAY read scan_sessions
+  * - MAY read source images from storage
+- * - MAY call the extraction provider via _shared/providers (default: Gemini)
++ * - MAY call the extraction provider via _shared/providers (default: muse-spark)
+  * - MAY update scan_sessions.raw_payload
+  * - MAY update scan_sessions.normalized_payload
+  * - MAY update extraction_status and error fields
+@@ -137,7 +137,7 @@ function validateFabricScanType(value: string): void {
+ // ============================================================================
+ // The catalogue schema comes from the registry (migration 083); the provider
+ // builds the prompt from it, calls the model and normalises the output.
+-// All Gemini specifics live in _shared/providers/geminiProvider.ts.
++// Provider selection and all provider-specific logic live in _shared/providers/.
+ 
+ const EXTRACTOR_VERSION = '1.0.0'
+ const CATALOGUE_SLUG = 'fabric'
+@@ -308,8 +308,11 @@ serve(async (req) => {
+       supabase,
+       scanSessionId,
+       {
+-        // Key kept byte-compatible with the pre-registry extractor.
+-        raw_payload: { gemini_raw: extraction.raw },
++        // Keep the legacy `gemini_raw` key for Gemini to stay byte-compatible
++        // with pre-registry rows; other providers get their own key.
++        raw_payload: {
++          [extraction.provider === 'gemini' ? 'gemini_raw' : `${extraction.provider}_raw`]: extraction.raw,
++        },
+         normalized_payload: extractionResult,
+         metadata: extractionResult.metadata,
+         run: buildExtractionRunInfo(extraction, schema),
+diff --git a/supabase/functions/extract-vendor-document/index.ts b/supabase/functions/extract-vendor-document/index.ts
+index 3da495a..a91621b 100644
+--- a/supabase/functions/extract-vendor-document/index.ts
++++ b/supabase/functions/extract-vendor-document/index.ts
+@@ -6,7 +6,7 @@
+  * CANONICAL ARCHITECTURE RULES:
+  * - MAY read scan_sessions
+  * - MAY read source images from storage
+- * - MAY call the extraction provider via _shared/providers (default: Gemini)
++ * - MAY call the extraction provider via _shared/providers (default: muse-spark)
+  * - MAY update scan_sessions.raw_payload
+  * - MAY update scan_sessions.normalized_payload
+  * - MAY update extraction_status and error fields
+@@ -110,7 +110,7 @@ function validateVendorScanType(value: string): void {
+ // ============================================================================
+ // The catalogue schema comes from the registry (migration 083); the provider
+ // builds the prompt from it, calls the model and normalises the output.
+-// All Gemini specifics live in _shared/providers/geminiProvider.ts.
++// Provider selection and all provider-specific logic live in _shared/providers/.
+ 
+ const EXTRACTOR_VERSION = '1.0.0'
+ const CATALOGUE_SLUG = 'vendor'
+@@ -276,8 +276,11 @@ serve(async (req) => {
+       supabase,
+       scanSessionId,
+       {
+-        // Key kept byte-compatible with the pre-registry extractor.
+-        raw_payload: { gemini_raw: extraction.raw },
++        // Keep the legacy `gemini_raw` key for Gemini to stay byte-compatible
++        // with pre-registry rows; other providers get their own key.
++        raw_payload: {
++          [extraction.provider === 'gemini' ? 'gemini_raw' : `${extraction.provider}_raw`]: extraction.raw,
++        },
+         normalized_payload: extractionResult,
+         metadata: extractionResult.metadata,
+         run: buildExtractionRunInfo(extraction, schema),

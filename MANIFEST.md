@@ -1,18 +1,17 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `71532cd8453ee1680ac1edff2aa6a829334b9e3e`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `60aa5e10afa9423ac6d819ebde30937e5bb9d2a3`.
 
 - Branch: `staging`
-- Date: 2026-10-31T00:32:49+02:00
+- Date: 2026-10-31T01:24:30+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `f25ec44bc2eecc539545c596c8161df9b3acfab2`
-- Incremental patch: `0003-f25ec44-to-71532cd.patch`
+- Previous source commit: `71532cd8453ee1680ac1edff2aa6a829334b9e3e`
+- Incremental patch: `0004-71532cd-to-60aa5e1.patch`
 
 ## Baseline files modified since previous submission update
 
 supabase/.sb.env.example
-supabase/functions/_shared/geminiClient.ts
-supabase/functions/_shared/scanSession.ts
+supabase/functions/_shared/envValidation.ts
 supabase/functions/extract-fabric-document/index.ts
 supabase/functions/extract-vendor-document/index.ts
 
@@ -41,13 +40,19 @@ docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-02-demo-writeup-submission.md
 scripts/build-submission.sh
 supabase/functions/_shared/catalogueSchemaRegistry.ts
+supabase/functions/_shared/providers/extractionNormaliser.ts
+supabase/functions/_shared/providers/extractionPrompt.ts
 supabase/functions/_shared/providers/geminiProvider.ts
 supabase/functions/_shared/providers/getProvider.ts
+supabase/functions/_shared/providers/museSparkProvider.ts
 supabase/functions/_shared/providers/types.ts
 supabase/functions/_tests/catalogueSchemaRegistry.test.ts
 supabase/functions/_tests/fixtures/gemini/fabric-product-tag.json
 supabase/functions/_tests/fixtures/gemini/vendor-card.json
+supabase/functions/_tests/fixtures/muse-spark/fabric-product-tag.json
+supabase/functions/_tests/fixtures/muse-spark/vendor-card.json
 supabase/functions/_tests/geminiProvider.golden.test.ts
 supabase/functions/_tests/getProvider.test.ts
+supabase/functions/_tests/museSparkProvider.golden.test.ts
 supabase/migrations/083_catalogue_types.sql
 supabase/migrations/084_scan_sessions_run_fields.sql
