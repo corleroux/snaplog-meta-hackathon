@@ -1,16 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `08b1f45b2f8b231647769df42ebd1eb64c7abea8`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `9bfc8a3f0779c457e7223dbda57bc08f8135725a`.
 
 - Branch: `staging`
-- Date: 2026-10-30T21:03:27+02:00
+- Date: 2026-10-30T21:11:41+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `c8b0c9e36ad83b1419b3a6a4acd957b229884fc0`
-- Incremental patch: `_none_`
+- Previous source commit: `08b1f45b2f8b231647769df42ebd1eb64c7abea8`
+- Incremental patch: `0002-08b1f45-to-9bfc8a3.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+src/features/styles/api/__tests__/styles.rls.test.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -36,3 +36,6 @@ docs/plans/README.md
 docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-02-demo-writeup-submission.md
 scripts/build-submission.sh
+supabase/functions/_shared/catalogueSchemaRegistry.ts
+supabase/functions/_tests/catalogueSchemaRegistry.test.ts
+supabase/migrations/083_catalogue_types.sql
