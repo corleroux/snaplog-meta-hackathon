@@ -1,0 +1,55 @@
+diff --git a/.gitignore b/.gitignore
+index 653245f..1d1f290 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -50,4 +50,4 @@ graphify-out/
+ *.log
+ tmp_*.sql
+ *.tmp
+-.opencode/sessions/
+\ No newline at end of file
++.opencode/sessions/__pycache__/
+diff --git a/src/features/scans/api/createScanSession.ts b/src/features/scans/api/createScanSession.ts
+index f2d8d98..b68879e 100644
+--- a/src/features/scans/api/createScanSession.ts
++++ b/src/features/scans/api/createScanSession.ts
+@@ -26,10 +26,15 @@ export type FabricScanType =
+   | 'fabric_card'
+   | 'multi_variant_sheet'
+ 
++/**
++ * Video scan types for the scan_session table (FR-VID).
++ */
++export type VideoScanType = 'rack_video'
++
+ /**
+  * All supported scan types.
+  */
+-export type ScanType = VendorScanType | FabricScanType
++export type ScanType = VendorScanType | FabricScanType | VideoScanType
+ 
+ export interface CreateScanSessionParams {
+   eventId: string
+diff --git a/supabase/.sb.env.example b/supabase/.sb.env.example
+index b90844d..839bdbc 100644
+--- a/supabase/.sb.env.example
++++ b/supabase/.sb.env.example
+@@ -93,3 +93,18 @@ MUSE_SPARK_MODEL=
+ # FR-MOD-03).
+ # Default: muse-spark (all-Meta demo runtime, FR-MOD-02a)
+ EXTRACTION_PROVIDER=
++
++# --- Video pipeline (FR-VID) ---
++
++# Public HTTPS URL of the deployed Modal video endpoint
++# (modal deploy modal/video_pipeline.py — owner only, consumes credits).
++# Used by: process-video-document (hands rack videos to Modal, returns
++# immediately; Modal writes results back to Supabase).
++# Without it, process-video-document returns 500 "Video pipeline unavailable".
++MODAL_VIDEO_ENDPOINT_URL=
++
++# Shared secret authenticating both directions of the video pipeline:
++# edge → Modal handoff AND Modal → extract-isolated-item callbacks.
++# Generate with: openssl rand -hex 32
++# Set in BOTH supabase secrets AND the Modal secret (snaplog-video).
++VIDEO_CALLBACK_SECRET=
