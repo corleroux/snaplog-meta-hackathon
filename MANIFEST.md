@@ -1,18 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `42951b3755ca9dbd73d7ad32c75880f09bc7672d`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `6f3b60469a1e05e88c0fea11acb3d984d308b7c4`.
 
 - Branch: `staging`
-- Date: 2026-10-31T07:43:30+02:00
+- Date: 2026-10-31T07:51:23+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `62e0531b8a5d57ad0f78386aa5f6b52e4b470066`
-- Incremental patch: `0006-62e0531-to-42951b3.patch`
+- Previous source commit: `42951b3755ca9dbd73d7ad32c75880f09bc7672d`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-.gitignore
-src/features/scans/api/createScanSession.ts
-supabase/.sb.env.example
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
