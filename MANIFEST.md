@@ -1,18 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `5201c7cb10099c5dcaaa677462cd8bb5a56fad4f`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `86673d232dc7784844f93ec6d80c48bd6452ae93`.
 
 - Branch: `staging`
-- Date: 2026-10-31T11:22:15+02:00
+- Date: 2026-10-31T16:10:29+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `832958906b5178a2db6f4ee90e459d9b6f5f23e3`
-- Incremental patch: `0009-8329589-to-5201c7c.patch`
+- Previous source commit: `5201c7cb10099c5dcaaa677462cd8bb5a56fad4f`
+- Incremental patch: `0010-5201c7c-to-86673d2.patch`
 
 ## Baseline files modified since previous submission update
 
-README.md
 supabase/.sb.env.example
-supabase/functions/_shared/envValidation.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
