@@ -1,16 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `0c502e64891f01ab270f4c40ebec0a77e4f6b730`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `342a3b67c29dd28a8a5eefe06a92586fd7bc190a`.
 
 - Branch: `staging`
-- Date: 2026-10-31T18:18:32+02:00
+- Date: 2026-10-31T19:00:20+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `86673d232dc7784844f93ec6d80c48bd6452ae93`
-- Incremental patch: `0011-86673d2-to-0c502e6.patch`
+- Previous source commit: `0c502e64891f01ab270f4c40ebec0a77e4f6b730`
+- Incremental patch: `0012-0c502e6-to-342a3b6.patch`
 
 ## Baseline files modified since previous submission update
 
-supabase/.sb.env.example
+.gitignore
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -37,12 +37,15 @@ docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-02-demo-writeup-submission.md
 e2e/garment-capture.spec.ts
 e2e/helpers/catalogue-mock-helper.ts
+eval/README.md
+eval/manifest.json
 modal/README.md
 modal/sam_parser.py
 modal/sam_segment.js
 modal/test_sam_parser.py
 modal/video_pipeline.py
 scripts/build-submission.sh
+scripts/validate-eval-manifest.ts
 src/app/catalogueRouteWrappers.tsx
 src/features/catalogue/__tests__/SchemaReviewForm.test.tsx
 src/features/catalogue/__tests__/catalogueRegistry.test.ts
