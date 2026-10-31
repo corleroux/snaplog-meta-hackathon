@@ -1,0 +1,29 @@
+diff --git a/.gitignore b/.gitignore
+index 1d1f290..595c971 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -51,3 +51,7 @@ graphify-out/
+ tmp_*.sql
+ *.tmp
+ .opencode/sessions/__pycache__/
++
++# Python bytecode (Modal pipeline tests)
++__pycache__/
++*.py[cod]
+diff --git a/supabase/.sb.env.example b/supabase/.sb.env.example
+index 839bdbc..e76c085 100644
+--- a/supabase/.sb.env.example
++++ b/supabase/.sb.env.example
+@@ -96,8 +96,11 @@ EXTRACTION_PROVIDER=
+ 
+ # --- Video pipeline (FR-VID) ---
+ 
+-# Public HTTPS URL of the deployed Modal video endpoint
++# Full HTTPS URL of the deployed Modal video webhook
+ # (modal deploy modal/video_pipeline.py — owner only, consumes credits).
++# This is the complete per-function endpoint URL, e.g.
++# https://<workspace>--snaplog-video-pipeline-process-video.modal.run
++# (shown by `modal deploy`; do NOT append a path — the edge POSTs to it as-is).
+ # Used by: process-video-document (hands rack videos to Modal, returns
+ # immediately; Modal writes results back to Supabase).
+ # Without it, process-video-document returns 500 "Video pipeline unavailable".

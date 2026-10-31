@@ -1,16 +1,17 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `45d1b1cdf93d75e431d19b242e7a21c116e8f04b`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `6e25ce95c7727e4b7b774d184aa04b2212b850e3`.
 
 - Branch: `staging`
-- Date: 2026-10-31T07:53:05+02:00
+- Date: 2026-10-31T08:08:52+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `6f3b60469a1e05e88c0fea11acb3d984d308b7c4`
-- Incremental patch: `_none_`
+- Previous source commit: `45d1b1cdf93d75e431d19b242e7a21c116e8f04b`
+- Incremental patch: `0007-45d1b1c-to-6e25ce9.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+.gitignore
+supabase/.sb.env.example
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -51,6 +52,7 @@ supabase/functions/_shared/providers/geminiProvider.ts
 supabase/functions/_shared/providers/getProvider.ts
 supabase/functions/_shared/providers/museSparkProvider.ts
 supabase/functions/_shared/providers/types.ts
+supabase/functions/_shared/videoHandoff.ts
 supabase/functions/_tests/catalogueSchemaRegistry.test.ts
 supabase/functions/_tests/commit-reviewed-catalogue-item.test.ts
 supabase/functions/_tests/extract-catalogue-item.test.ts
@@ -64,6 +66,7 @@ supabase/functions/_tests/geminiProvider.golden.test.ts
 supabase/functions/_tests/getProvider.test.ts
 supabase/functions/_tests/museSparkProvider.golden.test.ts
 supabase/functions/_tests/process-video-document.test.ts
+supabase/functions/_tests/videoHandoff.test.ts
 supabase/functions/commit-reviewed-catalogue-item/index.ts
 supabase/functions/extract-catalogue-item/index.ts
 supabase/functions/extract-isolated-item/index.ts
