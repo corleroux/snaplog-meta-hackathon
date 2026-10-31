@@ -1,18 +1,18 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `832958906b5178a2db6f4ee90e459d9b6f5f23e3`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `5201c7cb10099c5dcaaa677462cd8bb5a56fad4f`.
 
 - Branch: `staging`
-- Date: 2026-10-31T09:33:45+02:00
+- Date: 2026-10-31T11:22:15+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `6e25ce95c7727e4b7b774d184aa04b2212b850e3`
-- Incremental patch: `0008-6e25ce9-to-8329589.patch`
+- Previous source commit: `832958906b5178a2db6f4ee90e459d9b6f5f23e3`
+- Incremental patch: `0009-8329589-to-5201c7c.patch`
 
 ## Baseline files modified since previous submission update
 
-src/app/App.tsx
-src/features/styles/components/review/ReviewImageSection.tsx
-src/types/capture.ts
+README.md
+supabase/.sb.env.example
+supabase/functions/_shared/envValidation.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -69,6 +69,7 @@ supabase/functions/_shared/providers/extractionPrompt.ts
 supabase/functions/_shared/providers/geminiProvider.ts
 supabase/functions/_shared/providers/getProvider.ts
 supabase/functions/_shared/providers/museSparkProvider.ts
+supabase/functions/_shared/providers/sparkOpenProvider.ts
 supabase/functions/_shared/providers/types.ts
 supabase/functions/_shared/videoHandoff.ts
 supabase/functions/_tests/catalogueSchemaRegistry.test.ts
@@ -80,10 +81,14 @@ supabase/functions/_tests/fixtures/gemini/vendor-card.json
 supabase/functions/_tests/fixtures/muse-spark/fabric-product-tag.json
 supabase/functions/_tests/fixtures/muse-spark/vendor-card.json
 supabase/functions/_tests/fixtures/sam/sam-stream.json
+supabase/functions/_tests/fixtures/schemas.ts
+supabase/functions/_tests/fixtures/spark-open/fabric-product-tag.json
+supabase/functions/_tests/fixtures/spark-open/vendor-card.json
 supabase/functions/_tests/geminiProvider.golden.test.ts
 supabase/functions/_tests/getProvider.test.ts
 supabase/functions/_tests/museSparkProvider.golden.test.ts
 supabase/functions/_tests/process-video-document.test.ts
+supabase/functions/_tests/sparkOpenProvider.golden.test.ts
 supabase/functions/_tests/videoHandoff.test.ts
 supabase/functions/commit-reviewed-catalogue-item/index.ts
 supabase/functions/extract-catalogue-item/index.ts

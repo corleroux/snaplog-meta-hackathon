@@ -1,0 +1,99 @@
+diff --git a/README.md b/README.md
+index 5a26bd2..e89bd80 100644
+--- a/README.md
++++ b/README.md
+@@ -19,8 +19,11 @@ The goal for the ten-day build is to prove the pipeline generalises: **a catalog
+ | Garments as a second category, config only | Hackathon |
+ | Video capture: item isolation with SAM 3.1 on Modal | Hackathon |
+ | Model benchmark: Gemini vs Muse Spark vs Meta open weights | Hackathon |
++| Muse Spark Open extraction via Modal shared endpoint | Hackathon |
+ | Visual search ("find something like this") | Stretch |
+ 
++Built with **Muse Spark Open** and Meta's model stack.
++
+ ## How it works
+ 
+ ```
+diff --git a/supabase/.sb.env.example b/supabase/.sb.env.example
+index e76c085..4e1e5c1 100644
+--- a/supabase/.sb.env.example
++++ b/supabase/.sb.env.example
+@@ -87,13 +87,28 @@ GEMINI_MODEL=
+ MUSE_SPARK_MODEL=
+ 
+ # Extraction provider used by extract-fabric-document /
+-# extract-vendor-document (FR-MOD-01, _shared/providers/getProvider.ts).
+-# Available: 'gemini', 'muse-spark' (Modal open-weights lands with
+-# FR-MOD-02b/FR-MOD-03). Unknown values fail loudly (no fallback until
+-# FR-MOD-03).
++# extract-vendor-document / extract-catalogue-item (FR-MOD-01,
++# _shared/providers/getProvider.ts).
++# Available: 'gemini', 'muse-spark', 'muse-spark-open' (Modal open-weights,
++# FR-MOD-02b). Unknown values fail loudly (no fallback until FR-MOD-03).
+ # Default: muse-spark (all-Meta demo runtime, FR-MOD-02a)
+ EXTRACTION_PROVIDER=
+ 
++# --- Muse Spark Open on Modal (FR-MOD-02b) ---
++
++# Modal Proxy Token (wk-<id>.ws-<secret>) for the shared inference endpoint.
++# Create: Modal dashboard → Settings → Proxy Auth Tokens.
++# NOTE: a plain Modal API key (ak-...) is REJECTED with 401 on the shared
++# endpoint — a proxy token is required (verified by probe).
++# Used by: the muse-spark-open provider (EXTRACTION_PROVIDER=muse-spark-open).
++# Set via: supabase secrets set MODAL_PROXY_TOKEN=...
++MODAL_PROXY_TOKEN=
++
++# Muse Spark Open model override (FR-MOD-02b).
++# Default: meta-models/Muse-Spark-Open-816B-A42B (Modal shared endpoint,
++# verified via models.dev; confirm exact ID with GET /v1/models on probe).
++SPARK_OPEN_MODEL=
++
+ # --- Video pipeline (FR-VID) ---
+ 
+ # Full HTTPS URL of the deployed Modal video webhook
+diff --git a/supabase/functions/_shared/envValidation.ts b/supabase/functions/_shared/envValidation.ts
+index 0214ebb..506704e 100644
+--- a/supabase/functions/_shared/envValidation.ts
++++ b/supabase/functions/_shared/envValidation.ts
+@@ -12,6 +12,8 @@ interface EdgeFunctionEnv {
+   GEMINI_API_KEY?: string
+   MODEL_API_KEY?: string
+   MUSE_SPARK_MODEL?: string
++  MODAL_PROXY_TOKEN?: string
++  SPARK_OPEN_MODEL?: string
+ }
+ 
+ /**
+@@ -46,8 +48,8 @@ export function validateEnv(): EdgeFunctionEnv {
+     errors.push('SUPABASE_SERVICE_ROLE_KEY is required')
+   }
+ 
+-  // Provider-specific API keys
+-  const provider = env.EXTRACTION_PROVIDER || 'muse-spark'
++  // Provider-specific API keys (normalised the same way as getProvider).
++  const provider = (env.EXTRACTION_PROVIDER || 'muse-spark').trim().toLowerCase()
+ 
+   if (provider === 'gemini') {
+     if (!env.GEMINI_API_KEY || typeof env.GEMINI_API_KEY !== 'string' || env.GEMINI_API_KEY.trim() === '') {
+@@ -61,6 +63,12 @@ export function validateEnv(): EdgeFunctionEnv {
+     }
+   }
+ 
++  if (provider === 'muse-spark-open') {
++    if (!env.MODAL_PROXY_TOKEN || typeof env.MODAL_PROXY_TOKEN !== 'string' || env.MODAL_PROXY_TOKEN.trim() === '') {
++      errors.push('MODAL_PROXY_TOKEN is required when EXTRACTION_PROVIDER=muse-spark-open')
++    }
++  }
++
+   if (errors.length > 0) {
+     throw new Error(`Environment validation failed:\n  - ${errors.join('\n  - ')}`)
+   }
+@@ -72,6 +80,8 @@ export function validateEnv(): EdgeFunctionEnv {
+     GEMINI_API_KEY: env.GEMINI_API_KEY,
+     MODEL_API_KEY: env.MODEL_API_KEY,
+     MUSE_SPARK_MODEL: env.MUSE_SPARK_MODEL,
++    MODAL_PROXY_TOKEN: env.MODAL_PROXY_TOKEN,
++    SPARK_OPEN_MODEL: env.SPARK_OPEN_MODEL,
+   }
+ }
+ 
