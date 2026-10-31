@@ -1,19 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `60aa5e10afa9423ac6d819ebde30937e5bb9d2a3`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `62e0531b8a5d57ad0f78386aa5f6b52e4b470066`.
 
 - Branch: `staging`
-- Date: 2026-10-31T01:24:30+02:00
+- Date: 2026-10-31T02:07:35+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `71532cd8453ee1680ac1edff2aa6a829334b9e3e`
-- Incremental patch: `0004-71532cd-to-60aa5e1.patch`
+- Previous source commit: `60aa5e10afa9423ac6d819ebde30937e5bb9d2a3`
+- Incremental patch: `0005-60aa5e1-to-62e0531.patch`
 
 ## Baseline files modified since previous submission update
 
-supabase/.sb.env.example
-supabase/functions/_shared/envValidation.ts
-supabase/functions/extract-fabric-document/index.ts
-supabase/functions/extract-vendor-document/index.ts
+src/features/styles/api/__tests__/styles.rls.test.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -47,6 +44,8 @@ supabase/functions/_shared/providers/getProvider.ts
 supabase/functions/_shared/providers/museSparkProvider.ts
 supabase/functions/_shared/providers/types.ts
 supabase/functions/_tests/catalogueSchemaRegistry.test.ts
+supabase/functions/_tests/commit-reviewed-catalogue-item.test.ts
+supabase/functions/_tests/extract-catalogue-item.test.ts
 supabase/functions/_tests/fixtures/gemini/fabric-product-tag.json
 supabase/functions/_tests/fixtures/gemini/vendor-card.json
 supabase/functions/_tests/fixtures/muse-spark/fabric-product-tag.json
@@ -54,5 +53,8 @@ supabase/functions/_tests/fixtures/muse-spark/vendor-card.json
 supabase/functions/_tests/geminiProvider.golden.test.ts
 supabase/functions/_tests/getProvider.test.ts
 supabase/functions/_tests/museSparkProvider.golden.test.ts
+supabase/functions/commit-reviewed-catalogue-item/index.ts
+supabase/functions/extract-catalogue-item/index.ts
 supabase/migrations/083_catalogue_types.sql
 supabase/migrations/084_scan_sessions_run_fields.sql
+supabase/migrations/085_garment_schema_and_catalogue_items.sql
