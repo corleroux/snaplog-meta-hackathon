@@ -1,0 +1,81 @@
+diff --git a/src/app/App.tsx b/src/app/App.tsx
+index 321360c..e9982fe 100644
+--- a/src/app/App.tsx
++++ b/src/app/App.tsx
+@@ -20,6 +20,10 @@ import {
+   StyleEditScreenFromRouteWithProvider,
+   VariantEditScreenFromRouteWithProvider,
+ } from './styleRouteWrappers'
++import {
++  CatalogueItemCaptureFlowFromRouteWithProvider,
++  VideoCaptureScreenFromRouteWithProvider,
++} from './catalogueRouteWrappers'
+ import { SettingsRouteWrapper } from './settingsRouteWrapper'
+ import { ApprovalsInboxRouteWrapper } from './approvalsRouteWrapper'
+ import { EventSettingsRouteWrapper } from './eventSettingsRouteWrapper'
+@@ -304,6 +308,28 @@ function App() {
+               }
+             />
+ 
++            {/* Schema-driven item capture (FR-SCH-05) + rack video (FR-VID) */}
++            <Route
++              path="/events/:eventId/vendors/:vendorId/items/new/capture"
++              element={
++                <RequireAuth>
++                  <ErrorBoundary feature="item-capture">
++                    <CatalogueItemCaptureFlowFromRouteWithProvider />
++                  </ErrorBoundary>
++                </RequireAuth>
++              }
++            />
++            <Route
++              path="/events/:eventId/vendors/:vendorId/items/video"
++              element={
++                <RequireAuth>
++                  <ErrorBoundary feature="video-capture">
++                    <VideoCaptureScreenFromRouteWithProvider />
++                  </ErrorBoundary>
++                </RequireAuth>
++              }
++            />
++
+             {/* Public sharing route - no auth required */}
+             <Route
+               path="/share/:token"
+diff --git a/src/features/styles/components/review/ReviewImageSection.tsx b/src/features/styles/components/review/ReviewImageSection.tsx
+index 67430e6..2551a65 100644
+--- a/src/features/styles/components/review/ReviewImageSection.tsx
++++ b/src/features/styles/components/review/ReviewImageSection.tsx
+@@ -54,15 +54,17 @@ export function ThumbnailStrip({
+   selectedImageId: string | undefined
+   onImageSelect: (image: CaptureImage) => void
+ }) {
+-  if (images.length <= 1) return null
++  if (images.length <= 1) {return null}
+ 
+   return (
+     <div className="flex gap-2 overflow-x-auto pb-2">
+-      {images.map((img) => (
++      {images.map((img, index) => (
+         <button
+           key={img.id}
+           type="button"
+           onClick={() => onImageSelect(img)}
++          aria-label={`View image ${index + 1}`}
++          aria-pressed={img.id === selectedImageId}
+           className={cn(
+             "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 bg-muted transition-all",
+             img.id === selectedImageId ? "border-orange-500 ring-2 ring-orange-500/20" : "border-border hover:border-orange-500/50"
+diff --git a/src/types/capture.ts b/src/types/capture.ts
+index 8fcbee8..1417621 100644
+--- a/src/types/capture.ts
++++ b/src/types/capture.ts
+@@ -48,7 +48,7 @@ export interface CaptureImage {
+ /**
+  * Entity types that can be created through capture sessions
+  */
+-export type EntityType = 'vendor' | 'fabric_style'
++export type EntityType = 'vendor' | 'fabric_style' | 'catalogue_item'
+ 
+ /**
+  * Capture session state

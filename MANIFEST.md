@@ -1,17 +1,18 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `6e25ce95c7727e4b7b774d184aa04b2212b850e3`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `832958906b5178a2db6f4ee90e459d9b6f5f23e3`.
 
 - Branch: `staging`
-- Date: 2026-10-31T08:08:52+02:00
+- Date: 2026-10-31T09:33:45+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `45d1b1cdf93d75e431d19b242e7a21c116e8f04b`
-- Incremental patch: `0007-45d1b1c-to-6e25ce9.patch`
+- Previous source commit: `6e25ce95c7727e4b7b774d184aa04b2212b850e3`
+- Incremental patch: `0008-6e25ce9-to-8329589.patch`
 
 ## Baseline files modified since previous submission update
 
-.gitignore
-supabase/.sb.env.example
+src/app/App.tsx
+src/features/styles/components/review/ReviewImageSection.tsx
+src/types/capture.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -36,12 +37,29 @@ docs/plans/FR-VID-video-pipeline.md
 docs/plans/README.md
 docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-02-demo-writeup-submission.md
+e2e/garment-capture.spec.ts
+e2e/helpers/catalogue-mock-helper.ts
 modal/README.md
 modal/sam_parser.py
 modal/sam_segment.js
 modal/test_sam_parser.py
 modal/video_pipeline.py
 scripts/build-submission.sh
+src/app/catalogueRouteWrappers.tsx
+src/features/catalogue/__tests__/SchemaReviewForm.test.tsx
+src/features/catalogue/__tests__/catalogueRegistry.test.ts
+src/features/catalogue/__tests__/extractionWarnings.test.ts
+src/features/catalogue/__tests__/useCatalogueItemCaptureFlow.test.tsx
+src/features/catalogue/api/catalogueRegistry.ts
+src/features/catalogue/api/commitCatalogueItem.ts
+src/features/catalogue/api/extractCatalogueItem.ts
+src/features/catalogue/components/CatalogueTypePicker.tsx
+src/features/catalogue/components/SchemaReviewForm.tsx
+src/features/catalogue/hooks/useCatalogueItemCaptureFlow.ts
+src/features/catalogue/index.ts
+src/features/catalogue/screens/CatalogueItemCaptureFlow.tsx
+src/features/catalogue/screens/CatalogueItemReviewScreen.tsx
+src/features/catalogue/screens/VideoCaptureScreen.tsx
 src/features/video/api/processVideo.ts
 src/lib/upload/__tests__/videoUpload.test.ts
 src/lib/upload/videoUpload.ts
