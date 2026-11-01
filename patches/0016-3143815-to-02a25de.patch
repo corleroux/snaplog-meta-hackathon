@@ -1,0 +1,1885 @@
+diff --git a/.opencode/skills/task-claim/SKILL.md b/.opencode/skills/task-claim/SKILL.md
+deleted file mode 100644
+index ea86009..0000000
+--- a/.opencode/skills/task-claim/SKILL.md
++++ /dev/null
+@@ -1,258 +0,0 @@
+----
+-name: task-claim
+-description: Atomically claim a task from the Supabase task database (staging) and set up a git worktree so work can begin without collision risk. Use when the user says "start", "begin", "work on", "pick up", "claim", or "let's do" a specific task or roadmap item. Also triggers after task-create when the user wants to begin immediately, or when the user asks "what should I work on next?" with intent to start immediately.
+-compatibility: Requires the Supabase CLI (supabase), git, and Python 3.
+----
+-
+-# task-claim
+-
+-Claims a task in the Supabase **staging** task database and creates a git worktree for isolated work. The claim is atomic — a race-condition guard prevents two agents from claiming the same task.
+-
+-This skill is part of the task lifecycle: `task-create` → `task-plan` → `task-claim` → `task-complete`. Each skill can run independently, but they are designed to chain together.
+-
+-**Contract:** Agent MUST invoke this skill to start work on any task. Do NOT manually set `state = 'in_progress'` or create worktrees/branches outside this skill. Completion is handled by `task-complete` (which handles PR creation → merge → cleanup).
+-
+-All reads and writes go through `supabase db query --linked`, which connects to the linked Supabase project (project ref `<project-ref>`) and bypasses RLS. The Supabase CLI must be authenticated and linked before using this skill. Note: `SUPABASE_ACCESS_TOKEN` **and** `SUPABASE_DB_PASSWORD` must both be set — without the DB password the command hangs at `Initialising login role...`.
+-
+-**SQL execution note:** The CLI can be slow and occasionally times out (≈120s) on long single-quoted SQL that embeds newlines or JSON. For any multi-line statement (especially `UPDATE ... RETURNING` with a `plan_todos` JSONB blob), write the SQL to a temp file and pass it with `supabase db query --linked --file <path>` rather than inlining it in the shell. Inline single-line queries are fine.
+-
+-Read `docs/task-schema.md` for the full DB schema before writing any SQL.
+-
+----
+-
+-## Phase 1 — Identify the Target Task
+-
+-**If a task ID or roadmap ID was supplied** (e.g. `task-claim 44` or `task-claim P2-ARCH-1`), the user has already decided — skip listing, look up the task directly, and proceed. Validate:
+-- `state = 'todo'`
+-- `dependencies_met = 1`
+-- `agent_id IS NULL`
+-
+-If any check fails, explain clearly and stop:
+-- `state != 'todo'` → tell the user the current state and who owns it
+-- `dependencies_met = 0` → query and list the blocking tasks by name
+-- `agent_id IS NOT NULL` → tell the user which agent currently owns it
+-
+-Also fetch `plan_todos` for todo initialization:
+-
+-```sql
+-SELECT id, short_desc, priority, roadmap_id, classification,
+-       plan_status, ambiguity_level, plan_risk, plan_est_minutes, plan_todos,
+-       plan_step_count
+-FROM tasks
+-WHERE id = <task_id>;
+-```
+-
+-**If no argument was supplied**, surface the top 5 claimable candidates and let the user choose. Do not auto-select — the user decides what to work on.
+-
+-```sql
+-SELECT id, short_desc, priority, roadmap_id, classification,
+-       plan_status, ambiguity_level, plan_risk, plan_est_minutes
+-FROM tasks
+-WHERE state = 'todo'
+-  AND dependencies_met = 1
+-  AND agent_id IS NULL
+-  AND delivery_mode = 'code'
+-  AND ambiguity_level = 'clear'
+-ORDER BY
+-  CASE priority WHEN 'P0' THEN 0 WHEN 'P1' THEN 1 WHEN 'P2' THEN 2
+-               WHEN 'P3' THEN 3 WHEN 'P4' THEN 4 ELSE 5 END,
+-  created_at
+-LIMIT 5;
+-```
+-
+-Run with: `supabase db query --linked "<SQL above>"`
+-
+-Show the list with `plan_status` and risk/minutes for each, then wait for the user to pick one before proceeding to Phase 1b.
+-
+----
+-
+-## Phase 1b — Plan Gate
+-
+-After identifying the target task, check `plan_status` before doing anything else:
+-
+-**`ready`** — An execution plan exists in `detailed_desc`. Proceed to Phase 2.
+-
+-**`none`** — No plan exists. Stop and advise:
+-> "This task has no execution plan. Run `task-plan <id>` first to produce a file-level plan, then claim it when ready."
+-> Do not claim. Do not generate a session ID.
+-
+-**`ambiguous`** — Planning was attempted but blocked. Stop and show:
+-> "This task is marked ambiguous: [plan_notes]
+-> Resolve the ambiguity, then re-run `task-plan --replan <id>`."
+-> Do not claim. Do not generate a session ID.
+-
+-**`needs_replan`** — Plan is stale. Treat the same as `none`: stop and ask the user to re-run `task-plan --replan <id>` before claiming.
+-
+-**Exception:** If the user explicitly passes `--no-plan` (e.g. `task-claim 17 --no-plan`), skip this gate and proceed to Phase 2. Log a warning in `task_history`. Use only for urgent hotfixes where planning is impractical.
+-
+----
+-
+-## Phase 2 — Generate a Session ID
+-
+-Before writing anything to the DB, generate a unique agent ID for this session:
+-
+-```bash
+-python3 -c "import secrets; print('claude-' + secrets.token_hex(4))"
+-```
+-
+-This produces a value like `claude-a3f9b2c1`. Store it as `:my_agent_id` — you will use it for every DB write and for the `.agent-session` file. Never reuse a previous session's ID, even if the same task is being resumed.
+-
+----
+-
+-## Phase 3 — Atomic Claim
+-
+-Execute as two `supabase db query --linked` calls. The `UPDATE ... WHERE` clause is the race-condition guard — if another agent claimed between Phase 2 and Phase 3, the UPDATE matches 0 rows, no `task_history` row is written, and the claim does not land.
+-
+-**Step 1 — claim (atomic: the CTE only inserts history if the UPDATE matched):**
+-
+-```bash
+-supabase db query --linked "
+-WITH claimed AS (
+-    UPDATE tasks
+-    SET state             = 'in_progress',
+-        agent_id          = '<my_agent_id>',
+-        actual_start_date = now(),
+-        updated_at        = now()
+-    WHERE id = <task_id>
+-      AND state = 'todo'
+-      AND agent_id IS NULL
+-    RETURNING id
+-)
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-SELECT id, 'todo', 'in_progress', '<my_agent_id>', 'Task claimed'
+-FROM claimed;
+-"
+-```
+-
+-**Step 2 — verify the claim landed (race guard):**
+-
+-```bash
+-supabase db query --linked "SELECT id, state, agent_id FROM tasks WHERE id = <task_id>;"
+-```
+-
+-If `state != 'in_progress'` or `agent_id != '<my_agent_id>'`, another agent claimed the task between Phase 2 and Phase 3 — report the collision and stop.
+-
+----
+-
+-## Phase 4 — Create the Git Worktree (isolated, clean, deps-installed)
+-
+-This phase sets up a fully isolated, hygienic workspace before ANY code is written. The order matters: create the worktree, sync it to remote staging, install dependencies, then record it. All code changes for the task happen inside this worktree — never on the branch that was checked out to create it (i.e. never on `staging` in the main worktree).
+-
+-Multiple coding agents run in parallel, each in its own worktree. The steps below guarantee a worktree starts from a clean, current `staging` and never inherits uncommitted or stale changes from the main worktree — which would otherwise leak between parallel agents.
+-
+-Derive names from the task:
+-- **Worktree path:** `../worktrees/<project-name>-task-<task-id>` (relative to the repo root; resolves next to the main checkout)
+-- **Branch name:** `task/<task-id>/<roadmap-id-or-slug>`
+-  - Use `roadmap_id` if set (e.g. `task/17/P2-ARCH-1`)
+-  - Otherwise slugify `short_desc` to ≤ 30 chars (lowercase, hyphens, no special chars)
+-
+-**Step 1 — create the worktree off `staging`:**
+-
+-```bash
+-git worktree add -b task/<task-id>/<slug> ../worktrees/<project>-task-<task-id> staging
+-```
+-
+-**Step 2 — reset the worktree branch to match REMOTE staging (critical).** The local `staging` ref can be stale or carry uncommitted changes from the main worktree. Fetch, then hard-reset the new branch to `origin/staging` so the worktree starts from a known-clean, current base — uncontaminated by anything in the main worktree:
+-
+-```bash
+-git -C <worktree_path> fetch origin staging
+-git -C <worktree_path> reset --hard origin/staging
+-```
+-
+-If `fetch` fails (no network), fall back to `git -C <worktree_path> reset --hard staging` — acceptable only when local `staging` is known clean.
+-
+-**Step 3 — install dependencies inside the worktree.** A fresh worktree has no `node_modules`. Install before coding so the first build/lint/test works. pnpm's content-addressable store makes this near-instant via hard links:
+-
+-```bash
+-pnpm install
+-# run from inside the worktree: cd <worktree_path> && pnpm install
+-```
+-
+-**Step 4 — write the session ID file and record the path in the DB:**
+-
+-```bash
+-echo "<my_agent_id>" > <worktree_path>/.agent-session
+-```
+-
+-```bash
+-supabase db query --linked "
+-UPDATE tasks
+-SET worktree_path   = '<path>',
+-    worktree_status = 'active',
+-    updated_at      = now()
+-WHERE id = <task_id>;
+-"
+-```
+-
+-On failure (branch already exists, path conflict):
+-- Try once more with `--force`
+-- If still failing, leave the task as `in_progress` without a worktree and warn the user. Work can proceed in the main worktree — the task is still claimed. Write `.agent-session` to the current working directory instead.
+-
+-If `git worktree` is not available (not a git repo), skip this phase silently and omit worktree fields from the brief.
+-
+----
+-
+-## Phase 5 — Initialize Local Todo List from Plan
+-
+-If the task has `plan_todos` (non-empty JSON array), initialize the agent's local todo list using the `todowrite` tool. This gives the agent a structured checklist that mirrors the execution plan.
+-
+-```json
+-// Example plan_todos from task-plan:
+-[
+-  {"content": "Read src/features/vendors/...", "status": "pending", "priority": "high"},
+-  {"content": "Modify src/features/filters/SavedFilters.tsx", "status": "pending", "priority": "high"},
+-  {"content": "Run: pnpm build", "status": "pending", "priority": "medium"}
+-]
+-```
+-
+-**Agent action:** Call `todowrite` with the parsed `plan_todos` array. The agent will then update statuses locally as work progresses (`in_progress` → `completed`).
+-
+-If `plan_todos` is empty or null, the agent may create its own todos based on `detailed_desc`.
+-
+-**Manual verification is OUT of scope for this workflow.** Never add todo items for manual/visual checks (e.g. "verify in browser", "check light/dark theme") — those happen in a separate workflow and will never be completed here. Keep todos to concrete, agent-executable steps (reads, edits, build). Likewise, when carrying `plan_todos` from `task-plan`, do not add manual-check items.
+-
+----
+-
+-## Phase 6 — Output the Work Brief and Begin Immediately
+-Print the brief, then proceed directly into executing the task. Do not wait for the user to say "go ahead" or "start" — the claim is the instruction to start.
+-
+----
+-**Claimed: Task #<id>**
+-- Roadmap ID: [roadmap_id or "—"]
+-- Priority: [priority] | Type: [classification]
+-- Worktree: `[worktree_path or "main worktree"]`
+-- Branch: `task/<id>/<slug>`
+-
+-**Plan**
+-- Risk: [plan_risk or "unrated"] | Est. time: [plan_est_minutes or "unknown"] min | Steps: [plan_step_count or "unknown"]
+-
+-**Execution steps**
+-[detailed_desc — print verbatim]
+-
+-**Definition of done**
+-Run `task-complete <id>` when the work is finished. This will: create PR → merge to staging → unblock dependencies → clean up worktree/branch.
+----
+-
+-If `--no-plan` was used, prepend this warning to the brief:
+-"⚠ No execution plan — proceed carefully. Run `task-plan <id>` to plan before starting if time allows."
+-
+-After printing the brief, immediately begin step 1 of the work. The user has already confirmed the task — no further prompt is needed to start.
+-
+-**Before finishing:** when the work is done, commit your changes in the worktree BEFORE running `task-complete <id>`. Use `git add -u` to stage all changes to tracked files (including hook-regenerated files like graphify artifacts). If the task created new files, add them explicitly:
+-
+-```bash
+-git add -u
+-git add <path/to/new/file1> <path/to/new/file2>
+-git commit -m "<short_desc>"
+-```
+-
+-`task-complete` refuses to proceed if the worktree has no commit on top of staging or has uncommitted changes — committing first avoids a failed completion.
+-
+----
+-
+-## Edge Cases
+-
+-- Never claim a task in state `blocked`, `done`, or `cancelled`.
+-- If `dependencies_met = 0` despite having no rows in `task_dependencies` (data inconsistency), surface this to the user and offer to fix it:
+-  `UPDATE tasks SET dependencies_met = 1 WHERE id = :id AND state = 'todo'` (run via `supabase db query --linked`).
+-- If the user supplies a roadmap ID that maps to a done task, tell them it is already complete and suggest `task-create` if they want to log follow-on work.
+\ No newline at end of file
+diff --git a/.opencode/skills/task-complete/SKILL.md b/.opencode/skills/task-complete/SKILL.md
+deleted file mode 100644
+index 21126d1..0000000
+--- a/.opencode/skills/task-complete/SKILL.md
++++ /dev/null
+@@ -1,342 +0,0 @@
+----
+-name: task-complete
+-description: Close out a task in the Supabase task database (staging) — mark it done, blocked, or cancelled; record completion time; safely remove the git worktree; and unblock any downstream tasks that were waiting on it. Agent MUST invoke this skill after pushing the final commit to the task branch. Do NOT manually update task state to done, do NOT delete the worktree/branch — this skill handles PR creation → merge → dep unblock → cleanup.
+-compatibility: Requires the Supabase CLI (supabase), git, and the GitHub CLI (gh).
+----
+-
+-# task-complete
+-
+-Closes an active task in the Supabase task database (shared project `<project-ref>`). Handles three terminal paths: `done`, `blocked`, and `cancelled`. Each has different downstream behaviour — read carefully before writing any SQL.
+-
+-This skill is part of the task lifecycle: `task-create` → `task-plan` → `task-claim` → `task-complete`. Each skill can run independently, but they are designed to chain together.
+-
+-All reads/writes go through `supabase db query --linked`, which connects to the linked Supabase project (project ref `<project-ref>`) and bypasses RLS. The Supabase CLI must be authenticated and linked before using this skill. Note: `SUPABASE_ACCESS_TOKEN` **and** `SUPABASE_DB_PASSWORD` must both be set — without the DB password the command hangs at `Initialising login role...`.
+-
+-**SQL execution note:** The CLI can be slow and occasionally times out (≈120s) on long single-quoted SQL that embeds newlines or JSON. For any multi-line statement (especially the Phase 6 CTE with an `actual_todos` JSONB blob), write the SQL to a temp file and pass it with `supabase db query --linked --file <path>` rather than inlining it in the shell. Inline single-line queries are fine.
+-
+-Read `docs/task-schema.md` for the full DB schema.
+-
+----
+-
+-## Phase 0 — Pre-complete Validation (Mandatory)
+-
+-Before identifying the task, verify preconditions on any task ID supplied:
+-
+-```sql
+-SELECT id, state, worktree_path, worktree_status
+-FROM tasks WHERE id = <task_id>;
+-```
+-
+-**Fail if:**
+-- `state != 'in_progress'`
+-- `worktree_status != 'active'` (already mid-cleanup)
+-- The branch has **no new commit since it was created from staging** — i.e. the agent never committed the work. Check with:
+-  ```bash
+-  git -C <worktree_path> fetch origin staging
+-  git -C <worktree_path> merge-base --is-ancestor <worktree_path_commit> origin/staging
+-  ```
+-  Practical check: `git -C <worktree_path> log --oneline origin/staging..HEAD` must list at least one commit. If it is empty, the agent forgot to commit — stop and tell the user to commit the worktree changes first (the worktree also must be clean: `git -C <worktree_path> status --porcelain` should be empty before Phase 3 pushes).
+-- No PR exists targeting `staging` (check `gh pr list --head <branch> --base staging --json url --jq '.[0].url'`)
+-
+-If any check fails, report the failure and stop. Do not proceed.
+-
+----
+-
+-## Phase 1 — Identify the Task and Recover Session ID
+-
+-**If a task ID or roadmap ID was supplied** (`task-complete 17` or `task-complete P2-ARCH-1`), look it up directly. This is the preferred path.
+-
+-**If no ID was supplied**, look in the current conversation history first. The `task-claim` output earlier in this session will have printed `Claimed: Task #<id>`. Use that ID — do not query the database to guess.
+-
+-If the task ID genuinely cannot be found in the conversation history, query only to confirm, then ask the user:
+-
+-```sql
+-SELECT id, short_desc, worktree_path, worktree_status, state, actual_start_date, agent_id
+-FROM tasks
+-WHERE agent_id LIKE 'claude-%'
+-  AND state = 'in_progress'
+-ORDER BY actual_start_date DESC;
+-```
+-
+-Run with: `supabase db query --linked "<SQL above>"`
+-
+-Show the full list and ask: "Which task are you completing?" Do not auto-select.
+-
+-Once you have a confirmed task ID, **recover your session ID**:
+-
+-```bash
+-cat <worktree_path>/.agent-session
+-```
+-
+-This gives you `:my_agent_id` (e.g. `claude-a3f9b2c1`). You will use it as an ownership guard in every UPDATE. If the file is missing (worktree was removed or session is being resumed), read `agent_id` directly from the task row — it is the same value.
+-
+-Operate exclusively on that task ID for every remaining phase. Never read or modify any other `in_progress` task, even if others appear in the database.
+-
+----
+-
+-## Phase 2 — Determine Terminal State
+-
+-Read the user's signal and default without asking when it's clear:
+-
+-| Signal | State | Ask anything? |
+-|---|---|---|
+-| "done", "complete", "ship it", "finished" | `done` | No — proceed |
+-| "blocked on X", "waiting for Y" | `blocked` | Ask "What is blocking this?" if not stated |
+-| "cancel", "won't do", "descope" | `cancelled` | No — proceed |
+-
+-For `blocked`: record the reason clearly in `blocked_reason` — future sessions need to understand what was blocking without re-reading the full conversation.
+-
+----
+-
+-## Phase 3 — Push Branch and Open PR to Staging (Done Path Only)
+-
+-**Skip entirely for `blocked` and `cancelled` paths.**
+-
+-### Branching Rules (Non-negotiable)
+-
+-- All task branches base off `staging` and merge back to `staging`
+-- `main` is the production branch — only `staging` PRs into it
+-- Never push a task branch to `main` or create a PR targeting `main`
+-
+-### Check for Uncommitted Work
+-
+-```bash
+-git -C <worktree_path> status --porcelain
+-```
+-
+-If there are **uncommitted changes**, stop and tell the user. Do not proceed until they are committed or explicitly discarded.
+-
+-### Push Branch and Open PR
+-
+-```bash
+-git push -u origin <branch-name>
+-
+-gh pr create \
+-  --base staging \
+-  --head <branch-name> \
+-  --title "<short_desc>" \
+-  --body "$(cat <<'EOF'
+-## Summary
+-- What was done and why (1–3 bullets)
+-
+-## What Changed
+-- key files/areas touched
+-
+-## Test Plan
+-- [ ] Manual verification step 1
+-- [ ] Manual verification step 2
+-EOF
+-)"
+-```
+-
+-### Record PR URL in History
+-
+-```bash
+-supabase db query --linked "
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-VALUES (<task_id>, 'in_progress', 'in_progress', '<my_agent_id>', 'PR opened: <url>');
+-"
+-```
+-
+-**This is the most important safety check in the whole workflow.** A removed worktree with uncommitted changes means lost work.
+-
+----
+-
+-## Phase 4 — Prepare the Task Record for Cleanup
+-
+-The `WHERE` clause includes `agent_id = '<my_agent_id>'` as an ownership guard. Since this runs after Phase 1 has recovered the session ID, the guard is now effective — if another agent owns the task, the UPDATE returns 0 rows. Stop and report the conflict if this occurs.
+-
+-**Do NOT set the final state yet.** Setting `worktree_status = 'cleaning_up'` marks the task as mid-cleanup so that if the agent crashes or times out after this point, the record accurately reflects that work remains. The actual `done`/`cancelled` state is set in Phase 6, only after the worktree has been successfully removed.
+-
+-```bash
+-supabase db query --linked "
+-WITH prep AS (
+-    UPDATE tasks
+-    SET worktree_status = 'cleaning_up',
+-        updated_at      = now()
+-    WHERE id = <task_id>
+-      AND agent_id = '<my_agent_id>'
+-    RETURNING id
+-)
+-SELECT id FROM prep;
+-"
+-```
+-
+-If the UPDATE returns 0 rows, the ownership guard fired — another agent owns this task. Report the conflict and stop.
+-
+----
+-
+-## Phase 5 — Merge PR to Staging (Done Path Only)
+-
+-**Skip for `blocked` and `cancelled`.**
+-
+-### Merge PR
+-
+-Use **squash merge** — this is the default for this project. The repository disallows merge commits, so a `--merge` attempt will fail. Squash collapses the task branch's commits into a single clean commit on `staging` (the PR title becomes the commit message), keeping the integration branch linear and readable.
+-
+-```bash
+-gh pr merge <pr-url> --squash --delete-branch
+-```
+-
+-Note: `gh pr merge --squash --delete-branch` deletes the **remote** branch, but it cannot delete the **local** branch while it is still checked out by the active worktree. That is expected — the local branch is removed in Phase 8 (after the worktree is gone). If the command prints a "failed to delete local branch" warning, ignore it; verify the merge via the step below instead.
+-
+-### Verify Merge Landed
+-
+-```bash
+-git fetch origin staging
+-git merge-base --is-ancestor <branch-name> origin/staging
+-# Exit code 0 = merged successfully
+-```
+-
+-If merge verification fails, stop and report — do not clean up.
+-
+----
+-
+-## Phase 6 — Remove the Git Worktree
+-
+-Only if `worktree_path` is set and `worktree_status` was `active`:
+-
+-```bash
+-git worktree remove --force <worktree_path>
+-```
+-
+-### On Success — Atomically Record Cleanup, Terminal State, and Actual Todos
+-
+-```bash
+-supabase db query --linked "
+-WITH closed AS (
+-    UPDATE tasks
+-    SET state           = '<new_state>',
+-        worktree_path   = NULL,
+-        worktree_status = 'cleaned_up',
+-        actual_end_date = CASE WHEN '<new_state>' = 'done' THEN now() ELSE actual_end_date END,
+-        blocked_reason  = <blocked_reason_or_NULL>,
+-        agent_id        = CASE WHEN '<new_state>' IN ('done', 'cancelled') THEN NULL ELSE agent_id END,
+-        actual_todos    = '<actual_todos_jsonb>',
+-        updated_at      = now()
+-    WHERE id = <task_id>
+-      AND agent_id = '<my_agent_id>'
+-    RETURNING id
+-)
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-SELECT id, 'in_progress', '<new_state>', '<my_agent_id>', '<notes>'
+-FROM closed
+-RETURNING task_id;
+-"
+-```
+-
+-**Agent action:** Before this phase, serialize your local todo list (from `todowrite` tool) as JSONB and include it as `<actual_todos_jsonb>`. This captures the final state of each todo item for audit trail. Format matches `plan_todos`:
+-
+-```json
+-[
+-  {"content": "Read src/features/vendors/...", "status": "completed", "priority": "high"},
+-  {"content": "Modify src/features/filters/SavedFilters.tsx", "status": "completed", "priority": "high"},
+-  {"content": "Run: pnpm build", "status": "completed", "priority": "medium"}
+-]
+-```
+-
+-Write `notes` yourself from context — a one-sentence summary of what was done or why the task was blocked/cancelled. Do not ask the user to supply this.
+-
+-**`actual_todos` must contain only steps this agent actually executed** — all should be `completed`. Do not include manual/visual verification items (browser checks, theme checks); those belong to a separate workflow and are never done in this loop. If the source `plan_todos` carried a manual-check item left `pending`, drop it from `actual_todos` rather than recording a false incomplete step.
+-
+-### On Failure (Path Already Gone, Permission Error)
+-
+-```bash
+-supabase db query --linked "
+-UPDATE tasks SET worktree_status = 'cleanup_failed', updated_at = now() WHERE id = <task_id>;
+-"
+-```
+-
+-Log a warning but continue — a cleanup failure must not block the completion. The task remains in `in_progress` state so it can be retried.
+-
+----
+-
+-## Phase 6a — Sync local staging with remote (CRITICAL, Done Only)
+-
+-After the worktree is removed and the PR is merged, sync the local `staging` branch to
+-`origin/staging`. The main worktree's `staging` is now stale — this keeps it current.
+-
+-**Only run this when `new_state = 'done'`** (not blocked or cancelled).
+-
+-**Never reset local staging.** Use a fast-forward merge:
+-
+-```bash
+-git fetch origin staging
+-git checkout staging
+-git merge --ff-only origin/staging
+-```
+-
+-If `--ff-only` fails (local staging has commits not on origin, or the branch has
+-diverged), report the divergence but do NOT reset. The next task can start from
+-`origin/staging` directly.
+-
+-If `git checkout staging` fails (e.g., local changes in the main worktree), report but
+-do not block — the task is already merged and recorded.
+-
+----
+-
+-## Phase 7 — Unblock Downstream Tasks (Done Only)
+-
+-Only run this when `new_state = 'done'`. Skip entirely for `blocked` and `cancelled`.
+-
+-### Find Tasks That Depended on the Just-Completed Task
+-
+-```sql
+-SELECT td.dependent_id
+-FROM task_dependencies td
+-WHERE td.dependency_id = <task_id>;
+-```
+-
+-Run with: `supabase db query --linked "<SQL above>"`
+-
+-### For Each Dependent Task, Check If ALL Dependencies Are Now Done
+-
+-```sql
+-SELECT d.dependency_id
+-FROM task_dependencies d
+-WHERE d.dependent_id = <dep_task_id>
+-  AND d.dependency_id NOT IN (SELECT id FROM tasks WHERE state = 'done');
+-```
+-
+-**If result is empty** → all dependencies done → unblock:
+-
+-```sql
+-UPDATE tasks SET dependencies_met = 1, updated_at = now() WHERE id = <dep_task_id> AND dependencies_met = 0;
+-```
+-
+-### Record Unblock in History
+-
+-```sql
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-VALUES (<dep_task_id>, 'todo', 'todo', '<my_agent_id>', 'Dependencies met — unblocked by task #<completed_task_id>');
+-```
+-
+----
+-
+-## Phase 8 — Delete Local and Remote Branches (Mandatory Final Step)
+-
+-Only after merge verification in Phase 5 succeeded:
+-
+-```bash
+-# Local branch
+-git branch -D <branch-name>
+-
+-# Remote branch (if not deleted by gh pr merge --delete-branch)
+-git push origin --delete <branch-name>
+-```
+-
+-Then update worktree status to `cleaned_up` (already done in Phase 6 CTE, but explicit):
+-
+-```sql
+-UPDATE tasks SET worktree_status = 'cleaned_up' WHERE id = <task_id>;
+-```
+-
+----
+-
+-## Edge Cases
+-
+-- Never complete a task in state `blocked`, `done`, or `cancelled` (already terminal).
+-- If `dependencies_met = 0` despite having no rows in `task_dependencies` (data inconsistency), surface this to the user and offer to fix it:
+-  `UPDATE tasks SET dependencies_met = 1 WHERE id = :id AND state = 'todo'`
+-- If the user supplies a roadmap ID that maps to a done task, tell them it is already complete and suggest `task-create` if they want to log follow-on work.
+-- If PR merge fails or verification fails, leave the task in `in_progress` with `worktree_status = 'active'` so the user can investigate. Do not force cleanup.
+\ No newline at end of file
+diff --git a/.opencode/skills/task-create/SKILL.md b/.opencode/skills/task-create/SKILL.md
+deleted file mode 100644
+index d3002c2..0000000
+--- a/.opencode/skills/task-create/SKILL.md
++++ /dev/null
+@@ -1,241 +0,0 @@
+----
+-name: task-create
+-description: Create a new task in the project's Supabase task database (staging), or record a roadmap identifier (e.g. P2-FEAT-1) on a task. Use whenever the user wants to create, add, or log a task — including phrases like "create a task for", "add to the backlog", "start tracking", "seed P2-FEAT-1", or "log this as a task". Also triggers when the user completes work and wants to record follow-on items discovered during that work.
+-compatibility: Requires the Supabase CLI (supabase).
+----
+-
+-# task-create
+-
+-Creates a task in the Supabase **staging** task database. Generates all content
+-autonomously from context — do not ask the user to write descriptions or steps.
+-
+-This skill is part of the task lifecycle: `task-create` → `task-plan` → `task-claim` → `task-complete`. Each skill can run independently, but they are designed to chain together.
+-
+-All reads/writes go through `supabase db query --linked`, which connects to the
+-linked Supabase project (project ref `<project-ref>`) and bypasses RLS. The
+-Supabase CLI must be authenticated and linked before using this skill. Note:
+-`SUPABASE_ACCESS_TOKEN` **and** `SUPABASE_DB_PASSWORD` must both be set — without
+-the DB password the command hangs at `Initialising login role...`.
+-
+-Read `docs/task-schema.md` for the full DB schema, field constraints, and the
+-`dependencies_met` gotcha before writing any SQL.
+-
+----
+-
+-## Phase 1 — Avoid duplicates
+-
+-Query the database and check for an existing task before creating anything:
+-
+-```sql
+--- Check by roadmap_id first (exact match)
+-SELECT id, short_desc, state FROM tasks
+-WHERE roadmap_id = '<supplied_roadmap_id>';
+-
+--- If no roadmap_id supplied, fuzzy-match on short_desc
+-SELECT id, short_desc, state FROM tasks
+-WHERE short_desc LIKE '%' || '<keywords>' || '%'
+-  AND state NOT IN ('done', 'cancelled');
+-```
+-
+-Run with: `supabase db query --linked "<SQL above>"`
+-
+-If a non-cancelled, non-done match exists, tell the user and offer to claim it
+-instead of creating a duplicate. Stop here if they confirm the match.
+-
+----
+-
+-## Phase 2 — Ask clarifying questions
+-
+-Before generating anything, assess what you know. If the user's input is thin or
+-ambiguous, ask up to 3 targeted questions in a single message. Do not ask
+-questions you can answer from context, the conversation history, or the codebase.
+-
+-**Ask when genuinely unclear:**
+-- Scope: is this a small targeted change or a broader feature?
+-- Priority: is there a deadline or urgency signal?
+-- Known constraints: are there architectural decisions or patterns that must be followed?
+-- Dependencies: does this block or depend on other in-flight work?
+-- Delivery mode: does this require a human to take external action outside this codebase (e.g. configure a third-party service, set GitHub env vars) — or can it be completed with code changes alone?
+-
+-**Do not ask:**
+-- What files to touch — the planning agent figures that out
+-- How to implement it — that is also the planner's job
+-- Things already stated by the user in this conversation
+-
+-If the input is clear enough to proceed, skip this phase entirely. The goal is a
+-single round of questions up front — not a back-and-forth interview.
+-
+----
+-
+-## Phase 3 — Generate content autonomously
+-
+-Generate all of the following yourself from context and any answers provided above.
+-
+-**short_desc**
+-A single imperative sentence, ≤ 12 words, starting with a verb.
+-Example: `Wire SavedFilters into vendor and style list screens`
+-
+-**detailed_desc**
+-Context notes for the planning agent — not a step-by-step execution plan.
+-`task-plan` will read this plus the actual code and replace it with a
+-file-level plan before the task is claimed.
+-
+-Write 3–6 sentences covering:
+-- What this task needs to accomplish (the goal, not the steps)
+-- Which feature area or files are likely affected
+-- Any known constraints, dependencies, or design decisions already made
+-- Any traps or non-obvious context the planner should know
+-
+-Example:
+-```
+-Trade fair buyers need to mark styles as shortlisted vs merely catalogued.
+-No favourite mechanism exists anywhere — requires new DB column (is_shortlisted
+-on fabric_styles), RLS review, and a UI toggle in StyleCard, StyleListScreen,
+-and StyleDetailScreen. Existing RLS "members can update fabric_styles" likely
+-covers the new column — verify before adding new policies.
+-```
+-
+-**classification** — infer from work type (see `docs/task-schema.md` for the full list)
+-
+-**delivery_mode** — `'code'` (default) or `'manual'`. Use `'manual'` for tasks that require a human developer action outside the codebase (e.g. configuring a third-party service, setting GitHub environment settings, running a CLI tool manually). Manual tasks are excluded from coding agent claim queues.
+-
+-**priority** — use the roadmap tier from the supplied identifier (e.g. `P2-FEAT-1` → `P2`) when the user provides one; otherwise infer from impact and urgency below.
+-For organic tasks, infer from impact and urgency:
+-- `P0` — blocks production or blocks other agents right now
+-- `P1` — should ship before the next release
+-- `P2` — important, within 4 weeks
+-- `P3` — next quarter
+-- `P4` — strategic / no committed date
+-
+-**roadmap_id, roadmap_tier, roadmap_section** — if the user supplies a roadmap identifier (e.g. `P2-FEAT-1`), store it here and derive tier/section from the prefix or their input (`P2-FEAT-1` → tier `P2`, section `Feature Wiring`). These columns are the source of truth for the roadmap, which is projected from the task database — there is no standalone roadmap file to read from. Leave null for organic tasks that aren't tied to a roadmap item.
+-
+-**estimated_end_date** — ask only if the user mentioned a deadline or if
+-priority is P0/P1. Otherwise leave null.
+-
+----
+-
+-## Phase 4 — Check dependencies
+-
+-If the user mentioned that this task depends on other work, look up those tasks:
+-
+-```sql
+-SELECT id, short_desc, state
+-FROM tasks
+-WHERE roadmap_id IN ('<mentioned_ids>')
+-   OR short_desc LIKE '%' || '<keyword>' || '%';
+-```
+-
+-Identify any that are not yet `done` — these are unsatisfied dependencies.
+-If no dependencies were mentioned, skip this phase and set `dependencies_met = 1`.
+-
+----
+-
+-## Phase 5 — Confirm with the user
+-
+-Present this format before writing anything:
+-
+----
+-**New task**
+-- Summary: [short_desc]
+-- Type: [classification]
+-- Priority: [priority]
+-- Delivery: [delivery_mode ('code' or 'manual')]
+-- Estimated completion: [date or "not set"]
+-- Dependencies: [list of blocking tasks, or "none"]
+-- Plan: none — run `task-plan <id>` before claiming
+-
+-**Context**
+-[detailed_desc — the task description and known constraints]
+-
+-Confirm to create, or tell me what to change.
+----
+-
+-If the delivery mode is unclear from the task description, prompt the user:
+-```
+-Is this a coding task (changes to this codebase) or a manual task 
+-(e.g., configure a service, run CLI tools, set environment variables)?
+-Type: [classification] — [ask for 'code' or 'manual']
+-```
+-
+-Iterate until the user approves. Do not touch the DB before approval.
+-
+-Iterate until the user approves. Do not touch the DB before approval.
+-
+----
+-
+-## Phase 6 — Write to the DB
+-
+-After approval, write via `supabase db query --linked`. Each call auto-commits, so
+-there is no transaction-rollback risk between calls. Use `RETURNING` to capture the
+-new task id (Postgres has no `last_insert_rowid()`).
+-
+-**Step 1 — insert the task and its creation history, returning the new id:**
+-
+-The `agent_id` value here is the literal string `'creator'` — a stable role tag for the task-create skill, distinct from the per-session `claude-<hex>` IDs the `task-claim` skill generates. This keeps the audit trail readable: `task_history` rows show who acted (creator / planner / claude-<hex>) without ambiguity.
+-
+-```bash
+-supabase db query --linked "
+-WITH new_task AS (
+-    INSERT INTO tasks (
+-        short_desc, detailed_desc, classification, priority,
+-        state, dependencies_met, estimated_end_date,
+-        roadmap_id, roadmap_tier, roadmap_section,
+-        delivery_mode
+-    ) VALUES (
+-        '<short_desc>', '<detailed_desc>', '<classification>', '<priority>',
+-        'todo',
+-        <deps_met>,
+-        <estimated_end_date_or_NULL>,
+-        <roadmap_id_or_NULL>, <roadmap_tier_or_NULL>, <roadmap_section_or_NULL>,
+-        '<delivery_mode>'
+-    )
+-    RETURNING id
+-)
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-SELECT id, NULL, 'todo', 'creator', 'Task created' FROM new_task
+-RETURNING task_id;
+-"
+-```
+-
+-Read the returned `task_id` for Step 2.
+-
+-**Step 2 — insert dependencies (omit entirely if none):**
+-
+-```bash
+-supabase db query --linked "
+-INSERT INTO task_dependencies (dependent_id, dependency_id)
+-VALUES (<new_id>, <dep_id_1>), (<new_id>, <dep_id_2>);
+-"
+-```
+-
+-**Step 3 — confirm the row persisted:**
+-
+-```bash
+-supabase db query --linked "SELECT id, short_desc, state FROM tasks ORDER BY id DESC LIMIT 1;"
+-```
+-
+-If `deps_met = 0`, warn the user: this task cannot be claimed until the listed
+-dependencies are marked done.
+-
+----
+-
+-## Phase 7 — Report back
+-
+-```
+-Task #<id> created — "<short_desc>"
+-
+-Next steps:
+-1. task-plan <id>   — read the code and write a file-level execution plan
+-2. task-claim <id>  — claim the task and begin work (blocked until plan is ready)
+-```
+-
+----
+-
+-## Edge cases
+-
+-- If the user asks to create a task that already exists and is `done`, tell them and stop.
+-- If a `roadmap_id` is supplied that doesn't exist in the DB, create the task fresh and
+-  store the provided value in `roadmap_id`.
+-- Never create a task with `state = 'in_progress'` — creation always lands in `todo`.
+-- `roadmap_id` has a UNIQUE constraint. If the user tries to seed the same roadmap item
+-  twice, Phase 1 will catch it. Do not attempt the INSERT if it would violate uniqueness.
+diff --git a/.opencode/skills/task-plan/SKILL.md b/.opencode/skills/task-plan/SKILL.md
+deleted file mode 100644
+index b31d4b2..0000000
+--- a/.opencode/skills/task-plan/SKILL.md
++++ /dev/null
+@@ -1,276 +0,0 @@
+----
+-name: task-plan
+-description: Produce a precise, file-level execution plan for a task and write it back to the Supabase task database (staging). Use when the user wants to plan a task before claiming it, when a task has plan_status of "none" or "needs_replan", or when triggered by phrases like "plan this task", "write the plan for", or "figure out how to implement". Also use for batch planning a tier with "--batch". Only plans — reads code, reasons about it, writes a plan. Never modifies source files.
+-compatibility: Requires the Supabase CLI (supabase).
+----
+-
+-# task-plan
+-
+-Produce a precise, file-level execution plan for a task and write it back to the
+-Supabase **staging** task database. This skill ONLY plans — it reads code, reasons
+-about it, and writes a plan. It never modifies source files.
+-
+-This skill is part of the task lifecycle: `task-create` → `task-plan` → `task-claim` → `task-complete`. Each skill can run independently, but they are designed to chain together.
+-
+-All reads/writes go through `supabase db query --linked`, which connects to the
+-linked Supabase project (project ref `<project-ref>`) and bypasses RLS. The
+-Supabase CLI must be authenticated and linked before using this skill. Note:
+-`SUPABASE_ACCESS_TOKEN` **and** `SUPABASE_DB_PASSWORD` must both be set — without
+-the DB password the command hangs at `Initialising login role...`.
+-
+-The output of this skill is the input to a coding agent running `task-claim`.
+-
+----
+-
+-## What this skill is not
+-
+-- It does not write code.
+-- It does not run tests.
+-- It does not make git commits.
+-- It does not modify any file outside the Supabase staging task database.
+-
+-If you catch yourself opening a file to edit it, stop. Write what you *would* do
+-into the plan instead.
+-
+----
+-
+-## Phase 1 — Load the task
+-
+-Accept a task ID or roadmap ID: `task-plan P2-FEAT-1` or `task-plan 21`
+-
+-Query the database:
+-
+-```sql
+-SELECT t.*, STRING_AGG(td.dependency_id::text, ',') AS dep_ids
+-FROM tasks t
+-LEFT JOIN task_dependencies td ON td.dependent_id = t.id
+-WHERE t.roadmap_id = '<roadmap_id>' OR t.id = <id>
+-GROUP BY t.id;
+-```
+-
+-Run with: `supabase db query --linked "<SQL above>"`
+-
+-Check preconditions — stop and explain if any fail:
+-- `state` must be `todo` (not `done`, `blocked`, `in_progress`, or `cancelled`)
+-- `dependencies_met` must be `1`
+-- If `plan_status = 'ready'` and `--replan` was NOT passed: print "Task already planned. Use `--replan` to force re-planning." and stop.
+-- If `plan_status = 'ready'` and `--replan` WAS passed: proceed to plan.
+-- If `plan_status = 'ambiguous'` or `'needs_discovery'`: proceed (planning will update the status).
+-- Otherwise, `plan_status = 'none'`: proceed.
+-
+----
+-
+-## Phase 2 — Read the codebase
+-
+-Before forming any opinion about what needs to be done, read the relevant code.
+-Do not rely solely on `detailed_desc` — it contains notes, not ground truth.
+-
+-**Mandatory reads:**
+-- Any file paths mentioned in `detailed_desc` or `short_desc`
+-- The feature directory most likely to be affected (e.g. `src/features/vendors/`)
+-- Any type definition files relevant to the task (e.g. `src/types/`, `*.types.ts`)
+-
+-**For each read, note:**
+-- What currently exists vs what `detailed_desc` says should exist
+-- Any naming discrepancies, missing imports, or type mismatches
+-- Files the task description does NOT mention but that will clearly be affected
+-
+-**Do not read more than you need.** The goal is targeted understanding, not a full
+-codebase audit. If you find yourself reading unrelated files, stop.
+-
+----
+-
+-## Phase 3 — Assess ambiguity
+-
+-After reading, make an honest assessment. Set `ambiguity_level` according to these
+-definitions:
+-
+-**`clear`** — You can write the plan now. You know exactly which files to touch,
+-which functions to modify, and what the end state looks like. A coding agent could
+-execute this plan without making any architectural decisions.
+-
+-**`ambiguous`** — The task has a defined goal but one or more decisions need to be
+-made before execution can begin. Examples:
+-- Two valid implementation approaches with non-trivial tradeoffs
+-- A component that may or may not already exist in partially working form
+-- A missing dependency (type, API, schema) that the plan depends on
+-
+-**`needs_discovery`** — The task cannot be planned without exploratory work first.
+-The codebase state is materially different from what the task description assumes,
+-or the scope is undefined. Examples:
+-- The component to be wired does not exist in the location described
+-- The task says "audit X" with no specific outcome defined
+-- A prior agent left the code in an unknown state
+-
+-For `ambiguous` and `needs_discovery`, set `plan_status = 'ambiguous'`, write
+-`plan_notes` explaining exactly what is unknown and what information would resolve it,
+-and stop. Do not produce a speculative plan. The human will decide whether to
+-decompose the task, resolve the ambiguity first, or accept the risk.
+-
+----
+-
+-## Phase 4 — Write the execution plan
+-
+-Only reached if `ambiguity_level = 'clear'`.
+-
+-Write the plan as a numbered list of atomic steps. Each step must satisfy:
+-
+-**Specificity rule:** A coding agent must be able to execute the step without
+-making any decision not already made in the plan. If the step requires a judgment
+-call, that judgment must be included in the plan.
+-
+-**Format per step:**
+-```
+-N. [Verb] [exact file path]
+-   - [specific change: function name, line context, what to add/remove/replace]
+-   - [expected result or test to verify]
+-```
+-
+-**Required step types to include where applicable:**
+-- File reads that the coding agent needs to do first (to understand context)
+-- Each distinct file modification, in logical order
+-- Any new file to be created, with its location and expected exports
+-- Type changes that ripple across files (list all affected files)
+-- For edge function tasks: verify all 5 doc files are updated (SPEC.md, EDGE_FUNCTIONS.md, EDGE_FUNCTION_CONTRACTS.md, EDGE_FUNCTION_HARDENING.md, DEPLOYMENT_RUNBOOK.md)
+-- The build/lint/test command to run at the end to verify
+-
+-**Verification command:** use `pnpm build` (runs `tsc -b` + vite build) as the authoritative type/compile check. Do NOT use `pnpm lint` as a gate — this repo's ESLint flat config reports ~12k pre-existing errors repo-wide (a config issue, not your changes), so a lint gate is noise. If you want a lighter check, `pnpm build` alone is sufficient. Only add a `pnpm test` step when the task has meaningful automated tests.
+-- Any manual verification step if automated tests don't cover it
+-
+-**What a good step looks like:**
+-```
+-3. Modify src/features/filters/SavedFilters.tsx
+-   - Import is already correct; no changes needed here
+-   - Confirm the component accepts onApply: (filters: FilterState) => void prop
+-
+-4. Modify src/features/vendors/screens/VendorListScreen.tsx
+-   - Add import: import { SavedFilters } from '../../filters/SavedFilters'
+-   - Locate the existing filter panel (search for FilterPanel around line 84)
+-   - Add <SavedFilters onApply={handleFilterApply} /> directly above <FilterPanel>
+-   - handleFilterApply already exists as setActiveFilters — pass that directly
+-
+- 5. Run: pnpm build
+-   - Expect: zero TypeScript errors. This is the authoritative check — do NOT use pnpm lint (this repo reports ~12k pre-existing config-level lint errors repo-wide, unrelated to your change).
+-   - If TS complains about FilterState type mismatch: open src/types/filters.ts
+-     and confirm the shape matches what SavedFilters expects
+-```
+-
+-**What a bad step looks like:**
+-```
+-3. Wire SavedFilters into the vendor list screen   <- no file, no specifics
+-4. Fix any TypeScript errors that come up          <- deferred decision
+-```
+-
+-### Generating plan_todos
+-
+-After writing the plan, generate a `plan_todos` JSONB array for the agent's local todo list. Each plan step becomes one todo item:
+-
+-```json
+-[
+-  {"content": "Read src/features/vendors/...", "status": "pending", "priority": "high"},
+-  {"content": "Modify src/features/filters/SavedFilters.tsx", "status": "pending", "priority": "high"},
+-  {"content": "Modify src/features/vendors/screens/VendorListScreen.tsx", "status": "pending", "priority": "high"},
+-  {"content": "Run: pnpm build", "status": "pending", "priority": "medium"}
+-]
+-```
+-
+-- `content`: concise description from the step (verb + file + key action)
+-- `status`: always "pending" initially
+-- `priority`: "high" for file modifications, "medium" for reads/verification, "low" for docs
+-
+-**Manual verification is OUT of scope for this workflow.** Do NOT add todo items like "manually verify in browser", "check light/dark theme", or "visually confirm the result". Manual/visual verification happens in a separate workflow outside this agent loop and will never be completed here — carrying `pending` manual-check todos into `task-complete` only pollutes `actual_todos` and gives a false impression the work is unfinished. Keep todos to concrete, agent-executable steps only (reads, edits, build).
+-
+----
+-
+-## Phase 5 — Estimate effort
+-
+-After the plan, add a brief effort note:
+-
+-- **Step count:** how many distinct file modifications
+-- **Risk:** low / medium / high
+-  - low: self-contained, no type changes, existing tests cover it
+-  - medium: touches multiple features, some type changes, manual verification needed
+-  - high: touches core data flow, no tests, or depends on runtime behaviour
+-- **Estimated agent time:** rough minutes a focused coding agent should need
+-  (this trains your intuition over time — compare against actual `cycle_minutes`)
+-
+-These three values are persisted in Phase 6 to `plan_step_count`, `plan_risk`, and
+-`plan_est_minutes`. `task-claim` reads them to show risk/effort in the work brief, so
+-keep them accurate — don't leave them in the prose alone.
+-
+----
+-
+-## Phase 6 — Write back to the database
+-
+-Write via `supabase db query --linked`. Each call auto-commits, so there is no
+-transaction-rollback risk. Use a CTE so the `task_history` row is only written if
+-the `UPDATE` matched (guards against a stale/wrong task id).
+-
+-```bash
+-supabase db query --linked "
+-WITH planned AS (
+-    UPDATE tasks
+-    SET detailed_desc    = '<new_plan>',
+-        plan_todos       = '<plan_todos_jsonb>',
+-        plan_status      = '<ready|ambiguous|needs_replan>',
+-        ambiguity_level  = '<clear|ambiguous|needs_discovery>',
+-        plan_notes       = <notes_or_NULL>,
+-        plan_step_count  = <plan_step_count_or_NULL>,
+-        plan_risk        = '<plan_risk_or_NULL>',
+-        plan_est_minutes = <plan_est_minutes_or_NULL>,
+-        planned_at       = now(),
+-        updated_at       = now()
+-    WHERE id = <task_id>
+-    RETURNING id
+-)
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-SELECT id, 'todo', 'todo', 'planner', 'Plan written — ambiguity_level: <level>'
+-FROM planned
+-RETURNING task_id;
+-"
+-```
+-
+-Note: `state` does not change. Planning is not claiming. The `agent_id` literal `'planner'` distinguishes this role from the per-session `'claude-<hex>'` IDs generated at claim time.
+-
+----
+-
+-## Phase 7 — Report to the human
+-
+-Output a structured summary for human review:
+-
+----
+-**Plan: [roadmap_id] — [short_desc]**
+-Ambiguity: [clear / ambiguous / needs_discovery]
+-Risk: [low / medium / high]
+-Steps: [N] file modifications
+-Est. agent time: [X] minutes
+-
+-[If ambiguous or needs_discovery:]
+-**Cannot plan yet — [concise reason]**
+-Resolve by: [specific question or action]
+-
+-[If clear:]
+-**Execution plan written to database.**
+-Review with: `task-plan --show [id]`
+-When ready: `task-claim [id]`
+----
+-
+-Do not print the full plan to the terminal unless the user asks. It lives in the
+-database. The summary is what the human needs to decide whether to proceed.
+-
+----
+-
+-## Flags
+-
+-`task-plan --show [id]`
+-Print the current plan from the database without re-planning.
+-
+-`task-plan --replan [id]`
+-Force re-plan even if `plan_status = 'ready'`. Sets `plan_status = 'needs_replan'`
+-first, then runs the full flow. Use when codebase has changed since the plan was
+-written.
+-
+-`task-plan --batch [tier]`
+-Plan all `todo` tasks in a given tier where `plan_status = 'none'`. Processes them
+-in priority order. Stops and reports when any task is `ambiguous` or
+-`needs_discovery` — does not skip over them silently.
+diff --git a/.opencode/skills/task-quick/SKILL.md b/.opencode/skills/task-quick/SKILL.md
+deleted file mode 100644
+index 7ce50d8..0000000
+--- a/.opencode/skills/task-quick/SKILL.md
++++ /dev/null
+@@ -1,432 +0,0 @@
+----
+-name: task-quick
+-description: |
+-  Fast-track workflow for trivially small, well-understood code changes — the kind
+-  you'd fix in 2 minutes without thinking. Use this when the change touches ≤2 files,
+-  has no planning ambiguity, and doesn't need worktree isolation (e.g., renaming a
+-  variable, fixing a typo, updating a constant, adding a simple conditional, tweaking
+-  CSS, changing a label, or any change where the implementation is obvious).
+-
+-  This is also the skill to reach for when you're about to use task-run but the work
+-  feels too small for the full lifecycle — this gives you the same task tracking, PR,
+-  and merge automation without the overhead of planning and worktree creation.
+-
+-  The workflow: auto-create task (no confirmation) → lightweight branch (no worktree)
+-  → code → build → commit → PR → squash-merge → sync local staging with remote.
+-
+-  Always ends with syncing the local staging branch to origin/staging so the repo
+-  never drifts.
+----
+-
+-# task-quick
+-
+-Fast-track task lifecycle for trivially small changes. Cuts four overheads from the full
+-`task-run` flow: no user confirmation at creation, no planning phase, no worktree, and no
+-separate `pnpm install`. The result is the same — a tracked, built, PR'd, and merged change
+-to `origin/staging` — in roughly half the wall time.
+-
+----
+-
+-## Operating assumptions
+-
+-- **Fully autonomous through merge.** No human checkpoints. Task creation is automatic.
+-- **Only for trivially small changes.** If during execution you discover the change is
+-  complex (touches >2 files, requires cross-module type changes, needs careful thought),
+-  abort and fall back to the full `task-run` workflow. Honest assessment is better than
+-  forcing a bad fit.
+-- **No worktree isolation.** The lightweight branch shares the working tree with whatever
+-  else is happening in the repo. Background processes (graphify hooks, test watchers,
+-  other agents) can modify the working tree during execution. Phase 0a checks for a
+-  clean start, and Phase 3a stages intentionally — but concurrent agents should avoid
+-  this skill in favour of `task-run` with worktree isolation.
+-- **Authoritative gate is `pnpm build`.** `pnpm lint` is noise — the repo's flat ESLint
+-  config reports ~12k pre-existing errors. Do not gate on lint.
+-- **Manual/visual verification is OUT of scope.** No browser checks, theme checks, or
+-  manual QA todos. Keep todos to agent-executable steps only.
+-- **Local staging must always match remote.** A key design constraint: the skill ends
+-  by syncing the local `staging` branch to `origin/staging`.
+-
+----
+-
+-## Phase 0 — Pre-flight check and task creation
+-
+-### 0a — Pre-flight: verify working tree is clean
+-
+-Before touching anything, check that the working tree has no uncommitted changes that
+-could leak into the task branch:
+-
+-```bash
+-git status --porcelain
+-```
+-
+-**If there are modified tracked files** (not just ignored/generated files like `node_modules/`,
+-`dist/`, `graphify-out/`): stop and report. Explain that the working tree has uncommitted
+-changes and the user should commit or stash them first. This is a safety guard — the
+-lightweight branch approach shares the working tree with other work.
+-
+-**If the working tree is clean:** proceed.
+-
+-### 0b — Check that we're on a valid branch
+-
+-```bash
+-git branch --show-current
+-```
+-
+-If the current branch is `main`, `HEAD` (detached), or anything other than `staging` or
+-a previous task branch (`task/*`), warn that the skill expects to work from a staging-base
+-context but proceed anyway (the Phase 1c `git checkout staging` will handle it).
+-
+-### 0c — Auto-create the task
+-
+-Create a task row with minimal fields. Unlike `task-run`, this is fully automatic — no
+-user confirmation, no clarifying questions, no dependency checking. The task exists
+-solely for audit trail and PR automation.
+-
+-**Generate the task content yourself** from the user's natural-language request:
+-
+-- `short_desc`: ≤12 words, imperative, starting with a verb
+-- `detailed_desc`: 2–3 sentences — what changed and why. Do not write a plan.
+-- `classification`: infer from the work
+-- `priority`: infer from impact
+-- `delivery_mode`: `'code'` (always — this skill is for code changes)
+-- `dependencies_met`: 1
+-
+-**Write to the DB:**
+-
+-```bash
+-supabase db query --linked --file /tmp/task_create_quick.sql
+-```
+-
+-Where `/tmp/task_create_quick.sql` contains:
+-
+-```sql
+-WITH new_task AS (
+-    INSERT INTO tasks (
+-        short_desc, detailed_desc, classification, priority,
+-        state, dependencies_met, delivery_mode
+-    ) VALUES (
+-        '<short_desc>', '<detailed_desc>', '<classification>', '<priority>',
+-        'todo', 1, 'code'
+-    )
+-    RETURNING id
+-)
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-SELECT id, NULL, 'todo', 'quick-creator', 'Task created (quick path)'
+-FROM new_task
+-RETURNING task_id;
+-```
+-
+-The `agent_id` value `'quick-creator'` distinguishes quick-path tasks from full `task-run`
+-tasks in the audit trail.
+-
+-**Verify and capture the id:**
+-
+-```bash
+-supabase db query --linked "SELECT id, short_desc, state FROM tasks ORDER BY id DESC LIMIT 1;"
+-```
+-
+-Store the returned `task_id` as `:task_id`. Proceed immediately to Phase 1.
+-
+----
+-
+-## Phase 1 — Claim with lightweight branch
+-
+-No worktree, no `pnpm install`. Create a git branch from `staging` inside the main
+-checkout and atomically claim the task.
+-
+-### 1a — Generate a session ID
+-
+-```bash
+-python3 -c "import secrets; print('quick-' + secrets.token_hex(4))"
+-```
+-
+-This produces a value like `quick-a3f9b2c1`. Store it as `:my_agent_id`.
+-
+-### 1b — Atomic claim
+-
+-```bash
+-supabase db query --linked "
+-WITH claimed AS (
+-    UPDATE tasks
+-    SET state             = 'in_progress',
+-        agent_id          = '<my_agent_id>',
+-        actual_start_date = now(),
+-        updated_at        = now()
+-    WHERE id = <task_id>
+-      AND state = 'todo'
+-      AND agent_id IS NULL
+-    RETURNING id
+-)
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-SELECT id, 'todo', 'in_progress', '<my_agent_id>', 'Task claimed (quick path)'
+-FROM claimed;
+-"
+-```
+-
+-**Verify the claim landed:**
+-
+-```bash
+-supabase db query --linked "SELECT id, state, agent_id FROM tasks WHERE id = <task_id>;"
+-```
+-
+-If `state != 'in_progress'` or `agent_id != '<my_agent_id>'`, another agent claimed it
+-between the insert and now — report collision and stop.
+-
+-### 1c — Create the lightweight branch
+-
+-Create the task branch directly from `origin/staging`. Never checkout or reset the local
+-`staging` branch — it may have local-only commits that should be preserved.
+-
+-```bash
+-git fetch origin staging
+-git checkout -b task/<task_id>/<slug> origin/staging
+-```
+-
+-**If `git fetch` fails** (no network): fall back to creating the branch from local state:
+-
+-```bash
+-git checkout -b task/<task_id>/<slug> staging
+-```
+-
+-Note in `task_history` that the branch was created from local staging (may be stale).
+-
+-Derive slug from `short_desc`: lowercase, hyphens, ≤30 chars.
+-
+-**Branch naming examples:**
+-- "Fix typo in welcome message" → `task/84/fix-typo-welcome-message`
+-- "Update login button color" → `task/85/update-login-button-color`
+-
+-### 1d — Write the session file (no worktree path in DB since there's no worktree)
+-
+-```bash
+-echo "<my_agent_id>" > .agent-session
+-```
+-
+----
+-
+-## Phase 2 — Execute the change
+-
+-Work directly in the current directory (the main checkout, now on the task branch).
+-
+-- Read the file(s) that need changing
+-- Make the edit using the `edit` tool
+-- Update `todowrite` as you go
+-
+-### Verification gate — `pnpm build`
+-
+-After the edits:
+-
+-```bash
+-pnpm build
+-```
+-
+-- Expect: zero TypeScript / vite errors.
+-- On failure: fix and rebuild. **Up to 3 attempts.**
+-- After 3rd failure: stop, raise a `manual` P0 concern task with the last error + diff,
+-  then cancel this task. Do not commit a broken build.
+-
+----
+-
+-## Phase 3 — Commit
+-
+-Once `pnpm build` is green:
+-
+-### 3a — Stage all tracked changes (including hook-generated)
+-
+-Git hooks run on every code change and regenerate files like graphify artifacts. These
+-are tracked files that must be committed to keep the system consistent:
+-
+-```bash
+-git add -u
+-```
+-
+-`git add -u` stages all changes to **tracked** files — both your intentional edits and
+-any files regenerated by hooks. Do NOT use `git add -A` (would also stage new untracked
+-files that may be temporary).
+-
+-If the task created **new files** that should be part of the commit (e.g., a new
+-component), add them explicitly after `git add -u`:
+-
+-```bash
+-git add -u
+-git add <path/to/new/file>
+-```
+-
+-### 3b — Commit
+-
+-```bash
+-git commit -m "<short_desc>"
+-git status --porcelain   # must be empty
+-```
+-
+-If `git status` shows untracked files that are gitignored (e.g., `node_modules/`,
+-`dist/`), they are fine. If it shows uncommitted tracked files, they were modified
+-after the commit — investigate and decide whether to include them or revert them.
+-
+----
+-
+-## Phase 4 — Complete
+-
+-### 4a — Push the branch
+-
+-```bash
+-git push -u origin task/<task_id>/<slug>
+-```
+-
+-**If push fails with "rejected"** (branch already exists on remote from a previous
+-attempt): delete the remote branch first (`git push origin --delete
+-task/<task_id>/<slug>`) and retry.
+-
+-**If the change is already on origin/staging** (e.g., another agent already made the
+-same fix): detect this before creating a PR. If `git diff origin/staging -- <your
+-file>` shows no diff, the change is already deployed. In this case:
+-1. Do NOT create a PR (it would be empty).
+-2. Delete the local branch (`git checkout staging && git branch -D
+-   task/<task_id>/<slug>`).
+-3. Sync local staging (`git reset --hard origin/staging`).
+-4. Close the task as `done` with a note: "Change already present on origin/staging,
+-   no PR needed."
+-5. Skip to Phase 4e (close out the task) — do not run 4b–4d.
+-
+-### 4b — Open a PR to staging
+-
+-```bash
+-PR_URL=$(gh pr create \
+-  --base staging \
+-  --head task/<task_id>/<slug> \
+-  --title "<short_desc>" \
+-  --body "## Summary\\n<what was done and why>\\n\\n## What Changed\\n<files/areas touched>")
+-
+-echo "PR: $PR_URL"
+-```
+-
+-Record the PR in task history:
+-
+-```bash
+-supabase db query --linked "
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-VALUES (<task_id>, 'in_progress', 'in_progress', '<my_agent_id>', 'PR opened: <PR_URL>');
+-"
+-```
+-
+-### 4c — Squash-merge the PR
+-
+-```bash
+-gh pr merge "$PR_URL" --squash --delete-branch
+-```
+-
+-Verify the merge landed:
+-
+-```bash
+-git fetch origin staging
+-```
+-
+-### 4d — Sync local staging with remote (CRITICAL)
+-
+-This step ensures local `staging` tracks `origin/staging` without overwriting local
+-commits. Never reset local staging — use a fast-forward merge:
+-
+-```bash
+-git fetch origin staging
+-git checkout staging
+-git merge --ff-only origin/staging
+-```
+-
+-If `--ff-only` fails (local staging has commits not on origin), report the divergence
+-but do NOT reset. The next task can start from `origin/staging` directly.
+-
+-Then clean up the task branch:
+-
+-```bash
+-git branch -D task/<task_id>/<slug>
+-```
+-
+-### 4e — Close out the task in the DB
+-
+-Serialize your `todowrite` todos as JSONB and record completion:
+-
+-```bash
+-supabase db query --linked "
+-WITH closed AS (
+-    UPDATE tasks
+-    SET state           = 'done',
+-        actual_end_date = now(),
+-        agent_id        = NULL,
+-        actual_todos    = '<actual_todos_jsonb>'::jsonb,
+-        updated_at      = now()
+-    WHERE id = <task_id>
+-      AND agent_id = '<my_agent_id>'
+-    RETURNING id
+-)
+-INSERT INTO task_history (task_id, old_state, new_state, agent_id, notes)
+-SELECT id, 'in_progress', 'done', '<my_agent_id>', '<notes>'
+-FROM closed
+-RETURNING task_id;
+-"
+-```
+-
+-### 4f — Unblock downstream tasks
+-
+-```sql
+-SELECT td.dependent_id
+-FROM task_dependencies td
+-WHERE td.dependency_id = <task_id>;
+-```
+-
+-For each dependent, check ALL its dependencies are done. If so, set
+-`dependencies_met = 1`. Record the unblock in `task_history`.
+-
+----
+-
+-## Phase 5 — Failure handling and recovery
+-
+-Same philosophy as `task-run`: prefer forward recovery, document everything.
+-
+-| Failure point | Forward recovery | If unrecoverable |
+-|---|---|---|---|
+-| Working tree dirty at start | Report what files are dirty; ask user to commit/stash | Stop |
+-| Generated artifacts in staging diff | Stage only intentional files (see 3a); revert generated ones | Cancel if unsure what changed |
+-| Claim race collision (already owned) | Stop; report owner | Stop |
+-| `pnpm build` fails | Fix + rebuild (max 3 attempts) | Raise `manual` P0 concern, cancel task |
+-| Push rejected (branch exists) | Delete remote branch, re-push | — |
+-| Change already on origin/staging | Skip PR; close task as done (see 4a) | — |
+-| Merge conflict on PR merge | Resolve in branch, re-push, re-merge | Rollback + cancel |
+-| Merge verification fails | Retry merge; inspect if branch was already merged | Rollback, leave task `in_progress` |
+-| Git branch name collision | Append random suffix | — |
+-
+-**Unrecoverable → rollback and cancel:**
+-1. `git checkout staging && git reset --hard origin/staging` (discard branch)
+-2. `git branch -D task/<task_id>/<slug>` (if it exists and wasn't deleted)
+-3. Attach report to task via `task_history`
+-4. Move task to `cancelled`
+-
+----
+-
+-## Phase 6 — Report
+-
+-Print a one-block summary:
+-
+-```
+-━━ task-quick complete: Task #<id> — "<short_desc>" ━━
+-  Created: auto
+-  Branch: task/<id>/<slug>
+-  Build: pnpm build green
+-  Merged: squash-merged to origin/staging via PR #<n>
+-  Local staging: synced to origin/staging
+-  Unblocked: [dependent task ids, or "none"]
+-```
+-
+----
+-
+-## What this skill does NOT do
+-
+-- Does not plan or create `plan_todos` / `detailed_desc` plans
+-- Does not create worktrees or run `pnpm install`
+-- Does not ask the user to confirm task creation
+-- Does not batch multiple tasks in one run
+-- Does not run `pnpm lint` as a gate
+-- Does not create or carry manual/visual verification todos
+-- Does not auto-exclude generated artifacts from commits (you must stage intentionally in Phase 3a)
+-- Does not merge to `main` (only `staging`)
+-- Does not worktree-isolate changes — concurrent agents touching the same files will conflict
+-- Does not leave local `staging` out of sync with `origin/staging`
+diff --git a/.opencode/skills/task-run/SKILL.md b/.opencode/skills/task-run/SKILL.md
+deleted file mode 100644
+index 23488d2..0000000
+--- a/.opencode/skills/task-run/SKILL.md
++++ /dev/null
+@@ -1,298 +0,0 @@
+----
+-name: task-run
+-description: Run the complete task lifecycle end-to-end for a single task — from a natural-language request (create) or an existing task id, through plan, claim, code, and squash-merge to staging. Use when the user wants one command to "do a task", "run task (by id)", "create and ship", "take this from idea to staging", or otherwise drive task-create → task-plan → task-claim → task-complete as one continuous flow. Encodes the worktree-reset, pnpm-install, build-not-lint, squash-merge, blocked-spawns-unblocker, unrecoverable-rollback-to-cancelled, and no-manual-verification-todo rules derived from a real end-to-end run.
+-compatibility: Requires the Supabase CLI (supabase), git, the GitHub CLI (gh), pnpm, and Python 3. Builds with `pnpm build` inside a git worktree.
+----
+-
+-# task-run
+-
+-Drives one task through the entire lifecycle in a single continuous flow, ending in a
+-squash-merged, cleaned-up commit on `origin/staging`:
+-
+-```
+-[create] → plan → claim → code → complete (squash merge to staging)
+-```
+-
+-This skill does NOT re-implement the lifecycle steps. It sequences the existing skills
+-(`task-create`, `task-plan`, `task-claim`, `task-complete`) and enforces the operational
+-rules they document but do not chain together. It encodes lessons from a real end-to-end
+-run (task #78 → PR #84 → `origin/staging`).
+-
+-**Two entry points:**
+-- **Natural-language request** → start at `task-create` (Phase 0A), then plan onward.
+-- **Existing task id / roadmap id** (`task-run 44`, `task-run P2-FEAT-1`) → start at
+-  `task-plan` (Phase 0B), even if the task was planned before (re-plan to refresh against
+-  current code).
+-
+----
+-
+-## Operating assumptions (set from the reference run)
+-
+-- **Fully autonomous through merge.** Plan → claim → write code → verify with `pnpm build`
+-  → commit → complete (squash-merge). No human checkpoint after creation.
+-- **One real task per invocation.** Do not batch.
+-- **Authoritative gate is `pnpm build`** (tsc + vite). **`pnpm lint` is BANNED as a gate**
+-  — the repo's flat ESLint config reports ~12k pre-existing config-level errors repo-wide;
+-  a lint failure is noise.
+-- **Manual/visual verification is OUT of scope.** Never create, carry, or record todo
+-  items for browser/theme/visual checks in `plan_todos` or `actual_todos`.
+-- **The task audit trail is the source of truth for process effectiveness.** Keep it
+-  coherent: the initial request (Overview/Description), the plan saved during planning,
+-  the implementation notes from claim, and the close-out notes from complete must all be
+-  written back to the task. When in doubt, write more context to the task row / history.
+-- **Multi-line SQL** goes through `supabase db query --linked --file <path>` (inline long
+-  SQL can time out ~120s).
+-
+----
+-
+-## Phase 0 — Resolve the task
+-
+-### 0A — Create from a natural-language request
+-
+-Invoke `task-create` with the user's input. `task-create` will:
+-- Check for duplicates and ask up to 3 clarifying questions if the input is thin.
+-- Present the proposed task (summary, type, priority, delivery mode, dependencies,
+-  context) and **WAIT for the user to confirm before writing to the DB**. This is the
+-  ONLY checkpoint in the flow.
+-- On approval, write the row and return a new task id.
+-- If the delivery mode is `manual`, `task-create` stops (no agent code possible) — print
+-  "Manual task #<id> created — a human must perform the external action. No agent
+-  execution." and end the run.
+-
+-Continue with the new id into Phase 1.
+-
+-### 0B — Run an existing task
+-
+-The user supplies a task id or roadmap id. Validate it exists and is `todo` with
+-`dependencies_met = 1`. If not, explain and stop (same precondition `task-claim` Phase 1
+-enforces). Then go straight to Phase 1 (`task-plan`), re-planning even if `plan_status`
+-is already `ready` — code may have changed since the last plan.
+-
+----
+-
+-## Phase 1 — Plan (`task-plan`)
+-
+-Invoke `task-plan <id>` (or `task-plan --replan <id>` for an already-planned task).
+-
+-- If `task-plan` returns **ambiguous / needs_discovery**: stop and surface its reason.
+-  The human must resolve it before this flow can continue. Do not claim.
+-- If `plan_status = 'ready'`: continue to Phase 2.
+-
+-The plan's verification step should already specify `pnpm build` (task-plan enforces
+-this). If the plan instead named `pnpm lint` as the gate, override it locally to
+-`pnpm build` — lint is not a valid gate in this repo.
+-
+----
+-
+-## Phase 2 — Claim (`task-claim`)
+-
+-Invoke `task-claim <id>`. It atomically claims the task and, in Phase 4, creates the
+-isolated git worktree:
+-
+-1. `git worktree add -b task/<id>/<slug> ../worktrees/<project>-task-<id> staging`
+-2. `git -C <worktree_path> fetch origin staging && git -C <worktree_path> reset --hard origin/staging`
+-   — critical: the worktree starts from a clean, current `staging`, uncontaminated by the
+-   main worktree.
+-3. `pnpm install` **inside the worktree** (fresh worktree has no `node_modules`).
+-4. Writes `<worktree_path>/.agent-session` and records the path in the DB.
+-
+-`task-claim` then prints the work brief and **begins executing immediately**. All
+-subsequent code changes happen in `<worktree_path>` — never on `staging` in the main
+-worktree.
+-
+----
+-
+-## Phase 3 — Execute the plan (code)
+-
+-Drive the `plan_todos` from the brief using the `todowrite` tool, working only inside
+-`<worktree_path>`:
+-
+-- Read files, make edits, create files per the plan.
+-- **No manual/visual verification todos.** If the plan (or your own todos) would add a
+-  "verify in browser" / "check the theme" item, drop it — it is not agent-executable.
+-- Update `todowrite` statuses as you go (`in_progress` → `completed`).
+-
+-### Verification gate — `pnpm build`
+-
+-After the edits, run inside the worktree:
+-
+-```bash
+-cd <worktree_path> && pnpm build
+-```
+-
+-- Expect: zero TypeScript / vite errors. This is the authoritative check.
+-- On failure: read the error, fix the code in the worktree, rebuild. **Up to 3 attempts.**
+-  After the 3rd failed attempt, escalate — stop and raise a `manual` P0 task (see Phase 5
+-  failure handling) with the last build error and the diff, then stop the run. Do NOT
+-  proceed to commit with a broken build.
+-
+----
+-
+-## Phase 4 — Commit in the worktree
+-
+-Once `pnpm build` is green, commit the worktree changes (required before `task-complete`
+-will proceed — its Phase 0 refuses to run with no commit on top of `origin/staging` or a
+-dirty tree):
+-
+-```bash
+-git -C <worktree_path> add -u
+-git -C <worktree_path> commit -m "<short_desc>"
+-git -C <worktree_path> status --porcelain   # must be empty
+-```
+-
+-`git add -u` stages all changes to **tracked** files, including files regenerated by git
+-hooks (e.g., graphify artifacts). This keeps the system consistent — hooks run on every
+-code change and their output should be committed alongside the intentional changes.
+-
+-If the task created **new files** that should be part of the commit (e.g., a new component),
+-add them explicitly after `git add -u`:
+-
+-```bash
+-git -C <worktree_path> add -u
+-git -C <worktree_path> commit -m "<short_desc>"
+-git -C <worktree_path> status --porcelain   # must be empty
+-```
+-
+-`git add -u` stages all changes to **tracked** files, including files regenerated by git
+-hooks (e.g., graphify artifacts). This commits hook output alongside intentional changes,
+-keeping the system consistent. Do NOT use `git add -A` (would also stage new untracked
+-files that may be temporary artifacts).
+-
+-If the task created **new files** that should be part of the commit (e.g., a new component),
+-add them explicitly after `git add -u`:
+-
+-```bash
+-git -C <worktree_path> add -u
+-git -C <worktree_path> add <path/to/new/file>
+-git -C <worktree_path> commit -m "<short_desc>"
+-```
+-
+-The commit message is an intermediate one; the squash merge will use the PR title as the
+-final message on `staging`.
+-
+----
+-
+-## Phase 5 — Complete (`task-complete`)
+-
+-Invoke `task-complete <id>`. It:
+-
+-1. Phase 0 — validates a real commit on top of `origin/staging` and a clean tree.
+-2. Phase 3 — pushes the branch and opens a PR to `staging`.
+-3. Phase 5 — **squash-merges** the PR (`gh pr merge --squash --delete-branch`) and
+-   verifies it landed on `origin/staging`.
+-4. Phase 6 — removes the worktree, records `done` + `actual_todos` (agent-executed steps
+-   only, no manual checks).
+-5. Phase 7 — unblocks downstream `todo` tasks that depended on this one.
+-6. Phase 8 — deletes the local and remote branches.
+-
+-### Blocked path — blocked is a terminal state, but it MUST spawn an unblocker first
+-
+-If during execution the task becomes blocked (cannot proceed without external work),
+-this is an END state like `done`. Before `task-complete` may mark it `blocked`:
+-
+-1. First **create a follow-on task** via `task-create` describing exactly what must happen
+-   to unblock it — this can be a `code` or `manual` task. Record its id.
+-2. Add that new task as a dependency / block reference so there is visibility (set the
+-   blocked task's `dependencies` relationship or note the unblocker in `blocked_reason`).
+-3. Only then invoke `task-complete <id>` with the `blocked` signal, recording the unblocker
+-   task id in `blocked_reason` (e.g. "Blocked on #<new_id>: <what must happen>").
+-4. `task-complete` records `blocked` and stops — no PR, no merge, no worktree cleanup
+-   removal of the branch (worktree can be cleaned up but the task stays `blocked`).
+-
+-A blocked task without a corresponding unblocker task is a process violation — never mark
+-a task blocked without first creating the unblocker.
+-
+----
+-
+-## Phase 5a — Sync local staging with remote (CRITICAL)
+-
+-After `task-complete` finishes, the local `staging` branch is stale — `origin/staging` was
+-updated by the squash-merge but the local branch still points to the old commit. This
+-step ensures they stay in sync so the next task starts from a current base.
+-
+-**Only run this when the task was completed as `done`** (not blocked or cancelled).
+-
+-**Never reset local staging.** Use a fast-forward merge so any local-only commits are
+-preserved:
+-
+-```bash
+-git fetch origin staging
+-git checkout staging
+-git merge --ff-only origin/staging
+-```
+-
+-If `--ff-only` fails (local staging has commits not on origin, or the branch has
+-diverged), it means there is local work that hasn't been pushed. Report the divergence
+-in the summary but do NOT reset. The next task can start from `origin/staging` directly.
+-
+-If `git checkout staging` fails (e.g., local changes in the main worktree), report the
+-blocker but do NOT block completion. The task is already merged.
+-
+----
+-
+-## Phase 6 — Failure handling and recovery
+-
+-**Prefer forward recovery.** When a failure occurs, the skill should attempt to recover in
+-a forward direction (e.g. resolve and document a merge conflict rather than aborting).
+-Document every recovery action in `task_history` so the audit trail is complete.
+-
+-| Failure point | Forward recovery | If unrecoverable |
+-|---|---|---|
+-| `task-create` duplicate found | Offer existing task; stop if user confirms | — |
+-| `task-plan` ambiguous / needs_discovery | Stop; surface reason; human must resolve | Stop the run |
+-| `task-claim` race collision / already owned | Stop; report owner | Stop the run |
+-| Merge conflict on PR merge | Resolve conflict in worktree, document in history, re-push, re-merge | Rollback + cancel |
+-| `pnpm build` fails | Fix + rebuild (max 3 attempts) | Raise `manual` P0 task with error + diff; stop |
+-| `task-complete` uncommitted/clean-tree guard | Commit the worktree first, then re-run | Rollback + cancel |
+-| Any other precondition guard | Report clearly; attempt safe recovery | Rollback + cancel |
+-
+-**Unrecoverable failure → rollback and cancel.** If the skill cannot recover from any
+-failure, it MUST:
+-1. Roll back ALL code changes immediately (remove the worktree / reset the branch; never
+-   leave partial commits on `staging` — the squash merge only happens after a verified
+-   build, so `staging` is never touched before a clean merge).
+-2. Attach a detailed report to the task (what failed, the attempted recoveries, the final
+-   error/diff) via `task_history`.
+-3. Move the task to **`cancelled`** via `task-complete <id>` (cancelled path).
+-
+-**Raise-a-concern task.** Whenever the skill encounters a concern it cannot fully resolve
+-on its own — a flaky build, an unclear plan assumption, a suspicious schema state — it
+-MUST raise a `manual` task at **P0** with as much detail as possible (what, where, the
+-exact error/output, and the proposed next action). This keeps issues visible instead of
+-swallowed.
+-
+----
+-
+-## Phase 7 — Report
+-
+-Print a one-block summary for the human:
+-
+----
+-**task-run complete: Task #<id> — "<short_desc>"**
+-- Created: [yes (confirmed with user) / used existing]
+-- Plan: ready (risk <plan_risk>, <plan_step_count> steps)
+-- Worktree: <worktree_path> (cleaned up)
+-- Build: `pnpm build` green
+-- Merged: squash-merged to `origin/staging` via PR #<n>
+-- Unblocked: [dependent task ids, or "none"]
+-
+-Next: `task-claim` / `task-run` the next task, or review downstream unblocks.
+----
+-
+-For a non-`done` end state, adjust the summary:
+-- **Blocked:** "...Blocked on #<unblocker_id>: <reason>. Unblocker task created."
+-- **Cancelled:** "...Rolled back and cancelled. Report attached. Concern task: #<p0_id>."
+-
+----
+-
+-## What this skill does NOT do
+-
+-- Does not batch multiple tasks in one run.
+-- Does not run `pnpm lint` as a gate.
+-- Does not create or carry manual/visual verification todos.
+-- Does not merge to `main` (only `staging` → `main` happens in a separate release PR).
+-- Does not leave partial commits on `staging` (merge only after a verified build).
+-- Never resets local `staging` — uses `--ff-only` or reports divergence.
+-- Does not leave local `staging` out of sync with `origin/staging` (syncs after every `done` completion).
+-- Does not mark a task `blocked` without first creating its unblocker task.
+-- Does not swallow concerns — it raises a `manual` P0 task for anything it cannot resolve.

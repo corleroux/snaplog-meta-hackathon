@@ -1,16 +1,21 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `3143815a080b61dca6bf5d9b43984ef37baedb69`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `02a25deae2eedadea378b045f66c54c93afc86f9`.
 
 - Branch: `staging`
-- Date: 2026-11-01T19:42:33+02:00
+- Date: 2026-11-01T22:24:43+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `e1796d41dea6a99e96c6e190ef1a19022dc5e399`
-- Incremental patch: `_none_`
+- Previous source commit: `3143815a080b61dca6bf5d9b43984ef37baedb69`
+- Incremental patch: `0016-3143815-to-02a25de.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+.opencode/skills/task-claim/SKILL.md
+.opencode/skills/task-complete/SKILL.md
+.opencode/skills/task-create/SKILL.md
+.opencode/skills/task-plan/SKILL.md
+.opencode/skills/task-quick/SKILL.md
+.opencode/skills/task-run/SKILL.md
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -241,9 +246,50 @@ _none_
 DESIGN_SYSTEM.md
 Event Details.md
 docs/DEMO-SCRIPT.md
+docs/DESIGN-01-review-feedback.md
 docs/PRD.md
 docs/WRITEUP.md
 docs/benchmark-results.md
+docs/brand/DESIGN-HANDOFF.md
+docs/brand/DESIGN-MANIFEST.json
+docs/brand/Snaplog-Trade-Fair-Brand-Kit.zip
+docs/brand/capacitor.zip
+docs/brand/capture-1774937937370-8b0db4b3-7807-4a52-bb43-def276b598ca.webp
+docs/brand/capture-image-page2-extacting-process.png
+docs/brand/capture-image-page3-review.png
+docs/brand/capture-image-page3-review2.png
+docs/brand/capture-image-page3-review3.png
+docs/brand/capture-page-1-image-attached.png
+docs/brand/capture-page-1.png
+docs/brand/catalogue-list.png
+docs/brand/garment-04-jean-jacket.jpg
+docs/brand/garment-07-gown.jpg
+docs/brand/garment-10-denim-80s.jpg
+docs/brand/snaplog-app-redesign.html
+docs/brand/snaplog-avatar-48.png
+docs/brand/snaplog-avatar-512.png
+docs/brand/snaplog-avatar-98.png
+docs/brand/snaplog-avatar.svg
+docs/brand/snaplog-brand-kit.html
+docs/brand/snaplog-icon-1024.png
+docs/brand/snaplog-icon-1024.svg
+docs/brand/snaplog-icon-180.png
+docs/brand/snaplog-icon-192.png
+docs/brand/snaplog-icon-48.png
+docs/brand/snaplog-icon-512.png
+docs/brand/snaplog-icon-bg-432.png
+docs/brand/snaplog-icon-bg.svg
+docs/brand/snaplog-icon-fg-432.png
+docs/brand/snaplog-icon-fg.svg
+docs/brand/snaplog-logo-sting.html
+docs/brand/snaplog-social-covers.html
+docs/brand/snaplog-social-templates.html
+docs/brand/snaplog-splash-dark-2732.png
+docs/brand/snaplog-splash-dark-2732.svg
+docs/brand/snaplog-splash-light-2732.png
+docs/brand/snaplog-splash-light-2732.svg
+docs/brand/vendor-list-page.png
+docs/brand/vendor-page.png
 docs/plans/DESIGN-01-opendesign-brief.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
