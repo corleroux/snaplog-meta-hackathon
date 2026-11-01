@@ -1,18 +1,17 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `9bdedf34ef93e681a94071b2a86678f96e51cbe3`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `e9fd69f1987caac716e49692d783a5a810406c92`.
 
 - Branch: `staging`
-- Date: 2026-11-02T00:56:16+02:00
+- Date: 2026-11-02T01:11:27+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `02a25deae2eedadea378b045f66c54c93afc86f9`
-- Incremental patch: `0017-02a25de-to-9bdedf3.patch`
+- Previous source commit: `9bdedf34ef93e681a94071b2a86678f96e51cbe3`
+- Incremental patch: `0018-9bdedf3-to-e9fd69f.patch`
 
 ## Baseline files modified since previous submission update
 
-src/app/styleRouteWrappers.tsx
-src/features/styles/screens/StyleListScreen.tsx
-src/features/vendors/screens/VendorDetailScreen.tsx
+.gitignore
+skills-lock.json
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -288,6 +287,10 @@ docs/brand/snaplog-splash-light-2732.svg
 docs/brand/vendor-list-page.png
 docs/brand/vendor-page.png
 docs/plans/DESIGN-01-opendesign-brief.md
+docs/plans/DESIGN-02A-brand-assets.md
+docs/plans/DESIGN-02B-social-sting.md
+docs/plans/DESIGN-02C1-tokens-reskin.md
+docs/plans/DESIGN-02C2-screens-port.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
 docs/plans/FR-MOD-02b-spark-open-modal.md
@@ -298,6 +301,7 @@ docs/plans/FR-SCH-01-schema-registry.md
 docs/plans/FR-SCH-03-garment-schema.md
 docs/plans/FR-SCH-05-EXT-06-schema-review-ui.md
 docs/plans/FR-SCH-05b-route-wiring.md
+docs/plans/FR-VID-modal-jobs-check.md
 docs/plans/FR-VID-video-pipeline.md
 docs/plans/README.md
 docs/plans/SUB-01-submission-repo.md
