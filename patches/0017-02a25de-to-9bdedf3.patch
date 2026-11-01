@@ -1,0 +1,103 @@
+diff --git a/src/app/styleRouteWrappers.tsx b/src/app/styleRouteWrappers.tsx
+index 11a4bbc..bf5435c 100644
+--- a/src/app/styleRouteWrappers.tsx
++++ b/src/app/styleRouteWrappers.tsx
+@@ -69,7 +69,10 @@ export function StyleListFromRouteWithProvider() {
+       vendorName={vendorName}
+       eventId={eventId}
+       onBack={() => navigate(`/events/${eventId}/vendors`)}
+-      onAddStyle={canEdit ? () => navigate(`/events/${eventId}/vendors/${vendorId}/styles/new/capture`) : undefined}
++      // Picker hub first (schema-driven entry; fabric hands back to legacy).
++      onAddStyle={canEdit ? () => navigate(`/events/${eventId}/vendors/${vendorId}/items/new/capture`) : undefined}
++      // FAB keeps the fast legacy fabric path (FR-SCH-05b).
++      onFabPress={canEdit ? () => navigate(`/events/${eventId}/vendors/${vendorId}/styles/new/capture`) : undefined}
+       onStyleClick={(style) => navigate(`/events/${eventId}/vendors/${vendorId}/styles/${style.id}`)}
+       onVendorInfo={() => navigate(`/events/${eventId}/vendors/${vendorId}`)}
+       searchQuery={searchQuery}
+@@ -116,7 +119,7 @@ export function StyleDetailFromRouteWithProvider() {
+ 
+   useEffect(() => {
+     const fetchApprovalStatus = async () => {
+-      if (!styleId) return
++      if (!styleId) {return}
+       try {
+         const { getLatestApprovalStatus } = await import('@/features/approvals')
+         getLatestApprovalStatus('style', styleId).then(setApprovalStatus).catch(() => {})
+diff --git a/src/features/styles/screens/StyleListScreen.tsx b/src/features/styles/screens/StyleListScreen.tsx
+index 00296c9..57eb7e3 100644
+--- a/src/features/styles/screens/StyleListScreen.tsx
++++ b/src/features/styles/screens/StyleListScreen.tsx
+@@ -50,6 +50,10 @@ export interface StyleListScreenProps {
+   onBack?: () => void
+   /** Callback when Add Style is clicked */
+   onAddStyle?: () => void
++  /** Callback for the bottom-nav FAB. Defaults to onAddStyle. Kept separate
++   * so the FAB can stay on the fast legacy path while Add buttons route
++   * through the schema-driven picker hub (FR-SCH-05b). */
++  onFabPress?: () => void
+   /** Callback when a style is clicked */
+   onStyleClick?: (style: StyleRecord) => void
+   /** Callback when vendor info icon is clicked */
+@@ -99,6 +103,7 @@ export function StyleListScreen({
+   eventId: _eventId,
+   onBack,
+   onAddStyle,
++  onFabPress,
+   onStyleClick,
+   onVendorInfo,
+   searchQuery = '',
+@@ -321,7 +326,7 @@ export function StyleListScreen({
+       </main>
+ 
+       {/* Bottom navigation */}
+-      <BottomNavigation onAddPress={onAddStyle} />
++      <BottomNavigation onAddPress={onFabPress ?? onAddStyle} />
+ 
+       {/* Export Modal */}
+       <BatchExportModal
+diff --git a/src/features/vendors/screens/VendorDetailScreen.tsx b/src/features/vendors/screens/VendorDetailScreen.tsx
+index 9975df9..399ba13 100644
+--- a/src/features/vendors/screens/VendorDetailScreen.tsx
++++ b/src/features/vendors/screens/VendorDetailScreen.tsx
+@@ -12,7 +12,7 @@
+  * - Edit Vendor and Return to Styles CTAs
+  */
+ 
+-import { type ReactNode } from 'react'
++import type { ReactNode } from 'react'
+ import { Building2, Mail, Phone, Globe, MapPin, User, AlertTriangle, Edit2, Archive } from 'lucide-react'
+ import { cn } from '@/lib/utils/cn'
+ import { Button } from '@/components/ui'
+@@ -28,6 +28,7 @@ import type { VendorRecord } from '@/types/vendor'
+ import { CommentThread } from '@/components/comments/CommentThread'
+ import { AssignmentSheet } from '@/features/assignments'
+ import { VendorPriceComparisonSection } from '../components/VendorPriceComparisonSection'
++import { CatalogueItemsSection } from '@/features/catalogue/components/CatalogueItemsSection'
+ 
+ export interface VendorDetailScreenProps {
+   /** The vendor record to display */
+@@ -62,9 +63,9 @@ function getRelativeTime(timestamp: string): string {
+   const hours = Math.floor(diffMs / 3600000)
+   const days = Math.floor(diffMs / 86400000)
+ 
+-  if (minutes < 1) return 'Just now'
+-  if (minutes < 60) return `${minutes}m ago`
+-  if (hours < 24) return `${hours}h ago`
++  if (minutes < 1) {return 'Just now'}
++  if (minutes < 60) {return `${minutes}m ago`}
++  if (hours < 24) {return `${hours}h ago`}
+   return `${days}d ago`
+ }
+ 
+@@ -212,6 +213,11 @@ export function VendorDetailScreen({
+              )}
+            </div>
+ 
++           {/* Schema-driven catalogue items (FR-SCH-05b) — garments and
++               video-isolated items. Renders nothing when the vendor has
++               none, so legacy pages are visually untouched. */}
++           <CatalogueItemsSection vendorId={vendor.id} />
++
+            {/* Extraction warning banner */}
+            {vendor.extractionMeta?.warnings && vendor.extractionMeta.warnings.length > 0 && (
+              <SectionContainer

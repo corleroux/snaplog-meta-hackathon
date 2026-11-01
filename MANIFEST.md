@@ -1,21 +1,18 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `02a25deae2eedadea378b045f66c54c93afc86f9`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `9bdedf34ef93e681a94071b2a86678f96e51cbe3`.
 
 - Branch: `staging`
-- Date: 2026-11-01T22:24:43+02:00
+- Date: 2026-11-02T00:56:16+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `3143815a080b61dca6bf5d9b43984ef37baedb69`
-- Incremental patch: `0016-3143815-to-02a25de.patch`
+- Previous source commit: `02a25deae2eedadea378b045f66c54c93afc86f9`
+- Incremental patch: `0017-02a25de-to-9bdedf3.patch`
 
 ## Baseline files modified since previous submission update
 
-.opencode/skills/task-claim/SKILL.md
-.opencode/skills/task-complete/SKILL.md
-.opencode/skills/task-create/SKILL.md
-.opencode/skills/task-plan/SKILL.md
-.opencode/skills/task-quick/SKILL.md
-.opencode/skills/task-run/SKILL.md
+src/app/styleRouteWrappers.tsx
+src/features/styles/screens/StyleListScreen.tsx
+src/features/vendors/screens/VendorDetailScreen.tsx
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -300,6 +297,7 @@ docs/plans/FR-MOD-04-eval-set.md
 docs/plans/FR-SCH-01-schema-registry.md
 docs/plans/FR-SCH-03-garment-schema.md
 docs/plans/FR-SCH-05-EXT-06-schema-review-ui.md
+docs/plans/FR-SCH-05b-route-wiring.md
 docs/plans/FR-VID-video-pipeline.md
 docs/plans/README.md
 docs/plans/SUB-01-submission-repo.md
@@ -321,6 +319,7 @@ scripts/build-submission.sh
 scripts/run-benchmark.ts
 scripts/validate-eval-manifest.ts
 src/app/catalogueRouteWrappers.tsx
+src/features/catalogue/__tests__/CatalogueItemsSection.test.tsx
 src/features/catalogue/__tests__/SchemaReviewForm.test.tsx
 src/features/catalogue/__tests__/catalogueRegistry.test.ts
 src/features/catalogue/__tests__/extractionWarnings.test.ts
@@ -328,6 +327,8 @@ src/features/catalogue/__tests__/useCatalogueItemCaptureFlow.test.tsx
 src/features/catalogue/api/catalogueRegistry.ts
 src/features/catalogue/api/commitCatalogueItem.ts
 src/features/catalogue/api/extractCatalogueItem.ts
+src/features/catalogue/api/missingFields.ts
+src/features/catalogue/components/CatalogueItemsSection.tsx
 src/features/catalogue/components/CatalogueTypePicker.tsx
 src/features/catalogue/components/SchemaReviewForm.tsx
 src/features/catalogue/hooks/useCatalogueItemCaptureFlow.ts
