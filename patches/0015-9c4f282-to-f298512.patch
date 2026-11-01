@@ -1,0 +1,30 @@
+diff --git a/.gitignore b/.gitignore
+index 1cf514c..4bbe963 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -1,6 +1,8 @@
+ node_modules/
+ dist/
+ .build/
++.venv/
++__pycache__/
+ .env
+ .env.*
+ !.env.example
+diff --git a/skills-lock.json b/skills-lock.json
+index 16e92e3..8b5dff3 100644
+--- a/skills-lock.json
++++ b/skills-lock.json
+@@ -12,6 +12,12 @@
+       "sourceType": "github",
+       "skillPath": "skills/supabase-postgres-best-practices/SKILL.md",
+       "computedHash": "e14e276241805c97dbcfe40dcbea1a3035269cc7293cac4b1832dda41a835e60"
++    },
++    "modal": {
++      "source": "modal-labs/modal-client",
++      "sourceType": "github",
++      "skillPath": "py/modal/skills/modal/SKILL.md",
++      "computedHash": "a8715761370aa9b16fec4ccff2acd29fba778824a5e8c0d4b50efe3971fe5d98"
+     }
+   }
+ }
