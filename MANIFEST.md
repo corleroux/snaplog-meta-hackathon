@@ -1,16 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `342a3b67c29dd28a8a5eefe06a92586fd7bc190a`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `7fcb7a095ff2723b0a8456b3d2da521d9eb95449`.
 
 - Branch: `staging`
-- Date: 2026-10-31T19:00:20+02:00
+- Date: 2026-11-01T14:19:46+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `0c502e64891f01ab270f4c40ebec0a77e4f6b730`
-- Incremental patch: `0012-0c502e6-to-342a3b6.patch`
+- Previous source commit: `342a3b67c29dd28a8a5eefe06a92586fd7bc190a`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-.gitignore
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -26,6 +26,7 @@ docs/PRD.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
 docs/plans/FR-MOD-02b-spark-open-modal.md
+docs/plans/FR-MOD-02c-health-check.md
 docs/plans/FR-MOD-04-benchmark-runner.md
 docs/plans/FR-MOD-04-eval-set.md
 docs/plans/FR-SCH-01-schema-registry.md
@@ -34,6 +35,7 @@ docs/plans/FR-SCH-05-EXT-06-schema-review-ui.md
 docs/plans/FR-VID-video-pipeline.md
 docs/plans/README.md
 docs/plans/SUB-01-submission-repo.md
+docs/plans/SUB-01b-submission-narrative.md
 docs/plans/SUB-02-demo-writeup-submission.md
 e2e/garment-capture.spec.ts
 e2e/helpers/catalogue-mock-helper.ts
