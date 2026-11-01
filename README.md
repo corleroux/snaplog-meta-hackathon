@@ -10,10 +10,12 @@ A mobile-first **fabric catalogue** for fashion buyers at international trade fa
 
 ## What we are building this week
 
+The headline change: the extraction runtime moves off the pre-existing Gemini baseline onto Meta models — Muse Spark by default, Muse Spark Open as the open-weights comparison. Gemini remains only as recorded test fixtures and write-up context; it is never called at runtime.
+
 | Capability | Status |
 |---|---|
 | Schema registry — catalogue types as config | In progress |
-| Provider interface (Gemini, Muse Spark, open weights) | In progress |
+| Provider interface — runtime moved from Gemini to Muse Spark (+ open-weights leg) | In progress |
 | Garments as a second category, no code changes | In progress |
 | Video pipeline with SAM 3.1 item isolation on Modal | In progress |
 | Benchmark runner: accuracy, latency, cost | In progress |
