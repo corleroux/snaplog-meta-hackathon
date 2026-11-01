@@ -1,16 +1,18 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `250ed0b42e8f000383e6f9519a9cc2e279c0c8d4`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `5aad127669785aa3cd76429c3146d1fdce488e75`.
 
 - Branch: `staging`
-- Date: 2026-11-01T14:36:13+02:00
+- Date: 2026-11-01T16:43:32+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `7fcb7a095ff2723b0a8456b3d2da521d9eb95449`
-- Incremental patch: `0013-7fcb7a0-to-250ed0b.patch`
+- Previous source commit: `250ed0b42e8f000383e6f9519a9cc2e279c0c8d4`
+- Incremental patch: `0014-250ed0b-to-5aad127.patch`
 
 ## Baseline files modified since previous submission update
 
-AGENTS.md
+supabase/.sb.env.example
+supabase/functions/_tests/health-check.test.ts
+supabase/functions/health-check/index.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 

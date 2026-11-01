@@ -1,0 +1,294 @@
+diff --git a/supabase/.sb.env.example b/supabase/.sb.env.example
+index 590a792..bdc0d3c 100644
+--- a/supabase/.sb.env.example
++++ b/supabase/.sb.env.example
+@@ -24,9 +24,10 @@
+ MODEL_API_KEY=
+ 
+ # Google Gemini API key (https://aistudio.google.com/apikey)
+-# Used by: the gemini provider (EXTRACTION_PROVIDER=gemini), health-check,
+-#          _shared/envValidation.ts (still required there — Gemini stays
+-#          configured as the baseline and FR-MOD-03 fallback candidate).
++# Used by: the gemini provider (EXTRACTION_PROVIDER=gemini) and its
++# health-check leg only. NOT needed for a healthy all-Meta deploy —
++# health reflects the active provider (default muse-spark) and legacy
++# Gemini stays configured as the baseline / FR-MOD-03 fallback candidate.
+ GEMINI_API_KEY=
+ 
+ # Resend API key (https://resend.com/api-keys)
+diff --git a/supabase/functions/_tests/health-check.test.ts b/supabase/functions/_tests/health-check.test.ts
+index ee7eed6..a18b3ca 100644
+--- a/supabase/functions/_tests/health-check.test.ts
++++ b/supabase/functions/_tests/health-check.test.ts
+@@ -6,7 +6,7 @@
+  * Tests cover:
+  * - Successful health check → returns 200 with status
+  * - Database unreachable → degraded status
+- * - Gemini API unreachable → degraded status
++ * - Extraction provider unreachable → degraded status
+  * - Response structure validation
+  * - CORS handling
+  * - Method validation (GET only)
+@@ -72,7 +72,7 @@ Deno.test('health-check: returns valid response structure', async () => {
+       status: string
+       checks: {
+         database: { ok: boolean; latency_ms?: number }
+-        gemini_api: { ok: boolean; latency_ms?: number }
++        extraction_api: { ok: boolean; provider: string; latency_ms?: number }
+       }
+       timestamp: string
+       version: string
+@@ -81,7 +81,7 @@ Deno.test('health-check: returns valid response structure', async () => {
+     assertExists(data.status)
+     assertExists(['healthy', 'degraded'].includes(data.status))
+     assertExists(data.checks.database)
+-    assertExists(data.checks.gemini_api)
++    assertExists(data.checks.extraction_api)
+     assertExists(data.timestamp)
+     assertExists(data.version)
+   }
+@@ -96,12 +96,29 @@ Deno.test('health-check: includes database check', async () => {
+   }
+ })
+ 
+-Deno.test('health-check: includes gemini_api check', async () => {
++Deno.test('health-check: includes extraction_api check with the active provider', async () => {
+   const response = await callFunction('health-check')
+ 
+   if (response.status === 200 || response.status === 503) {
+-    const data = response.data as { checks: { gemini_api: unknown } }
+-    assertExists(data.checks.gemini_api)
++    const data = response.data as { checks: { extraction_api: { provider: string } } }
++    assertExists(data.checks.extraction_api)
++    // Default provider is muse-spark since FR-MOD-02a (all-Meta runtime).
++    assertEquals(data.checks.extraction_api.provider, 'muse-spark')
++  }
++})
++
++Deno.test('health-check: defaults to muse-spark with no GEMINI_API_KEY set', async () => {
++  // Regression test for FR-MOD-02c: health must not require the Gemini key.
++  // The served function reads its own env; this test pins the contract that
++  // the reported provider is the all-Meta default.
++  const response = await callFunction('health-check')
++
++  if (response.status === 200 || response.status === 503) {
++    const data = response.data as {
++      checks: { extraction_api: { provider: string; error?: string } }
++    }
++    assertEquals(data.checks.extraction_api.provider, 'muse-spark')
++    assertEquals((data.checks.extraction_api.error ?? '').includes('GEMINI_API_KEY'), false)
+   }
+ })
+ 
+@@ -140,10 +157,10 @@ Deno.test('health-check: returns 503 when database is down', async () => {
+   assertEquals([200, 503].includes(response.status), true)
+ })
+ 
+-Deno.test('health-check: returns 503 when gemini api is down', async () => {
++Deno.test('health-check: returns 503 when the extraction provider is down', async () => {
+   const response = await callFunction('health-check')
+ 
+-  // If Gemini is down, should return 503
++  // If the provider is down, should return 503
+   // If all is up, may return 200
+   assertEquals([200, 503].includes(response.status), true)
+ })
+@@ -249,21 +266,21 @@ Deno.test('health-check: includes database latency', async () => {
+   }
+ })
+ 
+-Deno.test('health-check: includes gemini_api latency', async () => {
++Deno.test('health-check: includes extraction_api latency', async () => {
+   const response = await callFunction('health-check')
+ 
+   if (response.status === 200 || response.status === 503) {
+     const data = response.data as {
+       checks: {
+-        gemini_api: { latency_ms?: number }
++        extraction_api: { latency_ms?: number }
+       }
+     }
+ 
+     // Latency should be a number if present
+-    if (data.checks.gemini_api.latency_ms !== undefined) {
+-      assertEquals(typeof data.checks.gemini_api.latency_ms, 'number')
++    if (data.checks.extraction_api.latency_ms !== undefined) {
++      assertEquals(typeof data.checks.extraction_api.latency_ms, 'number')
+       // Latency should be reasonable (0-10 seconds)
+-      assertEquals(data.checks.gemini_api.latency_ms >= 0 && data.checks.gemini_api.latency_ms <= 10000, true)
++      assertEquals(data.checks.extraction_api.latency_ms >= 0 && data.checks.extraction_api.latency_ms <= 10000, true)
+     }
+   }
+ })
+diff --git a/supabase/functions/health-check/index.ts b/supabase/functions/health-check/index.ts
+index 3bc9a99..0ab1ca4 100644
+--- a/supabase/functions/health-check/index.ts
++++ b/supabase/functions/health-check/index.ts
+@@ -4,7 +4,10 @@
+  * Returns 200 when all dependencies are reachable, 503 when degraded.
+  * Checks:
+  *  1. Database connectivity (via Supabase admin client)
+- *  2. Gemini API reachability (HTTP HEAD to endpoint)
++ *  2. Active extraction provider reachability (FR-MOD-02c) — resolved the
++ *     same way as getProvider (EXTRACTION_PROVIDER, default muse-spark),
++ *     via each provider's lightweight models-list endpoint. Never sends a
++ *     chat completion from a health probe (no inference spend).
+  *
+  * No authentication required — this is a public endpoint.
+  */
+@@ -16,16 +19,103 @@ import { createLogger } from '../_shared/logger.ts'
+ 
+ const log = createLogger('health-check')
+ 
++interface ProviderCheck {
++  ok: boolean
++  provider: string
++  latency_ms?: number
++  error?: string
++}
++
+ interface HealthCheckResult {
+   status: 'healthy' | 'degraded'
+   checks: {
+     database: { ok: boolean; latency_ms?: number; error?: string }
+-    gemini_api: { ok: boolean; latency_ms?: number; error?: string }
++    extraction_api: ProviderCheck
+   }
+   timestamp: string
+   version: string
+ }
+ 
++/**
++ * Resolve the active extraction provider the same way getProvider does
++ * (EXTRACTION_PROVIDER, default muse-spark).
++ */
++function activeProvider(): string {
++  return (Deno.env.get('EXTRACTION_PROVIDER') || 'muse-spark').trim().toLowerCase()
++}
++
++/**
++ * Lightweight reachability probe for the active provider: a models-list GET
++ * with a 5s timeout, no retries, no inference. Returns null when the
++ * provider's key is not configured (same contract as the old check).
++ */
++async function checkProvider(provider: string): Promise<ProviderCheck> {
++  const start = performance.now()
++  const timedOut = (message: string): ProviderCheck => ({
++    ok: false,
++    provider,
++    latency_ms: Math.round(performance.now() - start),
++    error: message,
++  })
++
++  try {
++    if (provider === 'muse-spark') {
++      const apiKey = Deno.env.get('MODEL_API_KEY')
++      if (!apiKey) return { ok: false, provider, error: 'MODEL_API_KEY not configured' }
++      const response = await fetch('https://api.meta.ai/v1/models', {
++        method: 'GET',
++        headers: { 'Authorization': `Bearer ${apiKey}` },
++        signal: AbortSignal.timeout(5000),
++      })
++      return {
++        ok: response.ok,
++        provider,
++        latency_ms: Math.round(performance.now() - start),
++        ...(!response.ok ? { error: `HTTP ${response.status}` } : {}),
++      }
++    }
++
++    if (provider === 'muse-spark-open') {
++      const proxyToken = Deno.env.get('MODAL_PROXY_TOKEN')
++      if (!proxyToken) return { ok: false, provider, error: 'MODAL_PROXY_TOKEN not configured' }
++      const baseUrl = (Deno.env.get('SPARK_OPEN_BASE_URL') || 'https://inference.us-west.modal.direct/v1').replace(/\/+$/, '')
++      const response = await fetch(`${baseUrl}/models`, {
++        method: 'GET',
++        headers: { 'Authorization': `Bearer ${proxyToken}` },
++        signal: AbortSignal.timeout(5000),
++      })
++      return {
++        ok: response.ok,
++        provider,
++        latency_ms: Math.round(performance.now() - start),
++        ...(!response.ok ? { error: `HTTP ${response.status}` } : {}),
++      }
++    }
++
++    if (provider === 'gemini') {
++      const apiKey = Deno.env.get('GEMINI_API_KEY')
++      if (!apiKey) return { ok: false, provider, error: 'GEMINI_API_KEY not configured' }
++      const response = await fetch(
++        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
++        {
++          method: 'GET',
++          signal: AbortSignal.timeout(5000),
++        },
++      )
++      return {
++        ok: response.ok,
++        provider,
++        latency_ms: Math.round(performance.now() - start),
++        ...(!response.ok ? { error: `HTTP ${response.status}` } : {}),
++      }
++    }
++
++    return { ok: false, provider, error: `Unknown EXTRACTION_PROVIDER "${provider}"` }
++  } catch (err) {
++    return timedOut(err instanceof Error ? err.message : 'Unknown error')
++  }
++}
++
+ serve(async (req) => {
+   const cors = handleCors(req)
+   if (cors) return cors
+@@ -35,7 +125,7 @@ serve(async (req) => {
+ 
+   const checks: HealthCheckResult['checks'] = {
+     database: { ok: false },
+-    gemini_api: { ok: false },
++    extraction_api: { ok: false, provider: activeProvider() },
+   }
+ 
+   // Check 1: Database connectivity
+@@ -61,38 +151,10 @@ serve(async (req) => {
+     }
+   }
+ 
+-  // Check 2: Gemini API reachability
+-  const apiKey = Deno.env.get('GEMINI_API_KEY')
+-  if (!apiKey) {
+-    checks.gemini_api = {
+-      ok: false,
+-      error: 'GEMINI_API_KEY not configured',
+-    }
+-  } else {
+-    const geminiStart = performance.now()
+-    try {
+-      const response = await fetch(
+-        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+-        {
+-          method: 'GET',
+-          signal: AbortSignal.timeout(5000),
+-        },
+-      )
+-      checks.gemini_api = {
+-        ok: response.ok,
+-        latency_ms: Math.round(performance.now() - geminiStart),
+-        ...(!response.ok ? { error: `HTTP ${response.status}` } : {}),
+-      }
+-    } catch (err) {
+-      checks.gemini_api = {
+-        ok: false,
+-        latency_ms: Math.round(performance.now() - geminiStart),
+-        error: err instanceof Error ? err.message : 'Unknown error',
+-      }
+-    }
+-  }
++  // Check 2: Active extraction provider reachability (FR-MOD-02c)
++  checks.extraction_api = await checkProvider(activeProvider())
+ 
+-  const allHealthy = checks.database.ok && checks.gemini_api.ok
++  const allHealthy = checks.database.ok && checks.extraction_api.ok
+   const result: HealthCheckResult = {
+     status: allHealthy ? 'healthy' : 'degraded',
+     checks,
