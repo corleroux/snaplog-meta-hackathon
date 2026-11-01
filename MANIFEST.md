@@ -1,16 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `7fcb7a095ff2723b0a8456b3d2da521d9eb95449`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `250ed0b42e8f000383e6f9519a9cc2e279c0c8d4`.
 
 - Branch: `staging`
-- Date: 2026-11-01T14:19:46+02:00
+- Date: 2026-11-01T14:36:13+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `342a3b67c29dd28a8a5eefe06a92586fd7bc190a`
-- Incremental patch: `_none_`
+- Previous source commit: `7fcb7a095ff2723b0a8456b3d2da521d9eb95449`
+- Incremental patch: `0013-7fcb7a0-to-250ed0b.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+AGENTS.md
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -21,6 +21,7 @@ _none_
 .opencode/agents/reviewer.md
 .opencode/agents/tester.md
 .opencode/opencode.jsonc
+DESIGN_SYSTEM.md
 Event Details.md
 docs/PRD.md
 docs/plans/FR-MOD-01-provider-interface.md
