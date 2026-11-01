@@ -1,18 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `5aad127669785aa3cd76429c3146d1fdce488e75`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `9c4f2826e62de6ea6e40a78458ea82e2e8e43ada`.
 
 - Branch: `staging`
-- Date: 2026-11-01T16:43:32+02:00
+- Date: 2026-11-01T16:46:43+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `250ed0b42e8f000383e6f9519a9cc2e279c0c8d4`
-- Incremental patch: `0014-250ed0b-to-5aad127.patch`
+- Previous source commit: `5aad127669785aa3cd76429c3146d1fdce488e75`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-supabase/.sb.env.example
-supabase/functions/_tests/health-check.test.ts
-supabase/functions/health-check/index.ts
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -26,6 +24,7 @@ supabase/functions/health-check/index.ts
 DESIGN_SYSTEM.md
 Event Details.md
 docs/PRD.md
+docs/plans/DESIGN-01-opendesign-brief.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
 docs/plans/FR-MOD-02b-spark-open-modal.md
