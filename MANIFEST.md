@@ -1,17 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `f298512811d0b3b56bcdcb28b08f7736a7d2e8a6`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `e1796d41dea6a99e96c6e190ef1a19022dc5e399`.
 
 - Branch: `staging`
-- Date: 2026-11-01T18:03:20+02:00
+- Date: 2026-11-01T19:32:44+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `9c4f2826e62de6ea6e40a78458ea82e2e8e43ada`
-- Incremental patch: `0015-9c4f282-to-f298512.patch`
+- Previous source commit: `f298512811d0b3b56bcdcb28b08f7736a7d2e8a6`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-.gitignore
-skills-lock.json
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -242,6 +241,7 @@ skills-lock.json
 DESIGN_SYSTEM.md
 Event Details.md
 docs/PRD.md
+docs/benchmark-results.md
 docs/plans/DESIGN-01-opendesign-brief.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
@@ -257,6 +257,7 @@ docs/plans/README.md
 docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-01b-submission-narrative.md
 docs/plans/SUB-02-demo-writeup-submission.md
+docs/roadmap/README.md
 e2e/garment-capture.spec.ts
 e2e/helpers/catalogue-mock-helper.ts
 eval/README.md
@@ -269,6 +270,7 @@ modal/test_sam_parser.py
 modal/uv.lock
 modal/video_pipeline.py
 scripts/build-submission.sh
+scripts/run-benchmark.ts
 scripts/validate-eval-manifest.ts
 src/app/catalogueRouteWrappers.tsx
 src/features/catalogue/__tests__/SchemaReviewForm.test.tsx
@@ -304,6 +306,7 @@ supabase/functions/_tests/extract-isolated-item.test.ts
 supabase/functions/_tests/fixtures/gemini/fabric-product-tag.json
 supabase/functions/_tests/fixtures/gemini/vendor-card.json
 supabase/functions/_tests/fixtures/muse-spark/fabric-product-tag.json
+supabase/functions/_tests/fixtures/muse-spark/garment-flat.json
 supabase/functions/_tests/fixtures/muse-spark/vendor-card.json
 supabase/functions/_tests/fixtures/sam/sam-stream.json
 supabase/functions/_tests/fixtures/schemas.ts
@@ -323,3 +326,4 @@ supabase/migrations/083_catalogue_types.sql
 supabase/migrations/084_scan_sessions_run_fields.sql
 supabase/migrations/085_garment_schema_and_catalogue_items.sql
 supabase/migrations/086_video_jobs.sql
+supabase/migrations/087_benchmark_runs.sql
