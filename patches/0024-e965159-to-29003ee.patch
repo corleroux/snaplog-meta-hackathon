@@ -1,0 +1,1984 @@
+diff --git a/src/components/activity/ActivityFeed.tsx b/src/components/activity/ActivityFeed.tsx
+index 71640f2..43d0ed6 100644
+--- a/src/components/activity/ActivityFeed.tsx
++++ b/src/components/activity/ActivityFeed.tsx
+@@ -80,7 +80,7 @@ function getActivityIcon(type: ActivityType) {
+ function getActivityColor(type: ActivityType) {
+   switch (type) {
+     case 'capture': return 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950'
+-    case 'edit': return 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950'
++    case 'edit': return 'text-danger dark:text-danger bg-field-warn'
+     case 'comment': return 'text-purple-600 dark:text-purple-400 bg-purple-50 dark:bg-purple-950'
+     case 'approval': return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950'
+     case 'delete': return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950'
+diff --git a/src/components/capture/ImageThumbnail.tsx b/src/components/capture/ImageThumbnail.tsx
+index 080dc7f..cab9f49 100644
+--- a/src/components/capture/ImageThumbnail.tsx
++++ b/src/components/capture/ImageThumbnail.tsx
+@@ -5,7 +5,7 @@
+  * Supports visual indication of Info vs Gallery classification.
+  *
+  * DESIGN ALIGNED:
+- * - Premium dark surfaces with warm orange accent for Info state
++ * - Stall accent for Info state
+  * - Clear typography hierarchy
+  * - Modern rounded surfaces
+  * - Mobile-first touch-friendly sizing
+@@ -43,7 +43,7 @@ export interface ImageThumbnailProps {
+  * Image thumbnail component for capture session
+  *
+  * Shows the image with visual indication of its classification:
+- * - Info images have sparkle icon badge, orange ring, and warm accent
++ * - Info images have sparkle icon badge, primary ring, and Stall accent
+  * - Gallery images have neutral styling with subtle border
+  * - Active/selected state has clear visual distinction
+  */
+@@ -65,10 +65,10 @@ export function ImageThumbnail({
+       className={cn(
+         // Base styles - mobile-first touch-friendly sizing
+         'relative group aspect-square rounded-xl overflow-hidden bg-muted',
+-        // Border styling - Info gets warm orange ring
++        // Border styling - Info gets primary ring
+         'border-2 transition-all cursor-pointer tap-target',
+         isActive ? 'border-primary ring-2 ring-ring ring-offset-2' : 'border-border',
+-        isInfo && 'border-orange-500 shadow-lg shadow-orange-500/20',
++        isInfo && 'border-primary shadow-lg shadow-primary/20',
+         className
+       )}
+       onClick={() => onClick?.(image.id)}
+@@ -92,7 +92,7 @@ export function ImageThumbnail({
+           <Badge
+             variant="accent"
+             size="sm"
+-            className="gap-1 shadow-md bg-orange-500 text-white font-medium"
++            className="gap-1 shadow-md bg-primary text-primary-foreground font-medium"
+           >
+             <Sparkles className="h-3 w-3" />
+             Info
+@@ -138,7 +138,7 @@ export function ImageThumbnail({
+             // Mobile-first: always visible, hover effect on desktop
+             'opacity-100 sm:opacity-0 sm:group-hover:opacity-100 hover:scale-110',
+             isInfo
+-              ? 'bg-orange-500 text-white hover:bg-orange-600'
++              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+               : 'bg-background/90 text-foreground hover:bg-background'
+           )}
+           type="button"
+diff --git a/src/components/capture/UploadQueueIndicator.tsx b/src/components/capture/UploadQueueIndicator.tsx
+index 63ee0d4..a187435 100644
+--- a/src/components/capture/UploadQueueIndicator.tsx
++++ b/src/components/capture/UploadQueueIndicator.tsx
+@@ -9,7 +9,7 @@ export function UploadQueueIndicator() {
+   if (uploading > 0) {
+     return (
+       <div className="fixed bottom-4 left-4 right-4 bg-background border border-border shadow-lg rounded-full px-4 py-2 flex items-center gap-2 text-sm text-foreground">
+-        <Loader2 className="h-4 w-4 animate-spin text-orange-500" />
++        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+         <span>Uploading {uploading} item{uploading !== 1 ? 's' : ''}...</span>
+       </div>
+     )
+diff --git a/src/components/layout/AppShell.tsx b/src/components/layout/AppShell.tsx
+index 82965d5..4431b84 100644
+--- a/src/components/layout/AppShell.tsx
++++ b/src/components/layout/AppShell.tsx
+@@ -53,7 +53,7 @@ export function AppShell({
+           'relative',
+           'w-full max-w-[430px]',   // hard mobile cap — never exceeded
+           'h-screen',                // always full viewport height for bottom nav positioning
+-          'bg-white',
++          'bg-background',
+           'pt-2',
+           'flex flex-col',           // column layout for header/content/footer
+           // Shadow gives the "phone on a desk" feel on larger screens
+diff --git a/src/components/layout/BottomNavigation.tsx b/src/components/layout/BottomNavigation.tsx
+index 119c4f8..06c6563 100644
+--- a/src/components/layout/BottomNavigation.tsx
++++ b/src/components/layout/BottomNavigation.tsx
+@@ -4,10 +4,10 @@
+  * Design System Section 10 (Bottom Navigation):
+  * - Fixed at bottom of the 430px shell (content scrolls under)
+  * - Height: 72px (nav bar) + FAB protrudes ~28px above
+- * - Active state: text-primary (Stall on Ink) icon + label
++ * - Active state: Stall icon + label + Stall dot indicator (on Ink bar)
+  * - Inactive state: text-paper/70 icon + label
+- * - Icon size: 24px (h-6 w-6)
+- * - Label: text-[10px]
++ * - Icon size: 24px (h-6 w-6), stroke width 2 everywhere
++ * - Label: sans text-[11px], sentence case
+  * - Touch target per item: minimum 44px height
+  * - Nav items: [Home] [Events] [FAB +] [Search] [Profile]
+  * - Centre FAB replaces Notifications; notifications moved to header bell icon
+@@ -34,7 +34,7 @@ import { useAuth, signOut, useProfileRole } from '@/features/auth'
+ interface NavItem {
+   label: string
+   href: string
+-  icon: React.ComponentType<{ className?: string }>
++  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+   isAction?: boolean
+ }
+ 
+@@ -207,8 +207,9 @@ export function BottomNavigation({
+                   aria-label={active ? `${item.label} (current)` : item.label}
+                   aria-current={active ? 'page' : undefined}
+                 >
+-                  <Icon className="h-6 w-6" />
+-                  <span className="font-mono text-[10px] font-medium uppercase tracking-wide leading-none">{item.label}</span>
++                  <Icon className="h-6 w-6" strokeWidth={2} />
++                  <span className="text-[11px] font-medium leading-none">{item.label}</span>
++                  {active && <span className="w-1 h-1 rounded-full bg-current" />}
+                 </button>
+               </li>
+             )
+@@ -236,7 +237,7 @@ export function BottomNavigation({
+               }}
+               className="transition-transform duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+             >
+-              <Plus className="h-6 w-6 text-primary-foreground" strokeWidth={2.5} />
++              <Plus className="h-6 w-6 text-primary-foreground" strokeWidth={2} />
+             </button>
+           </li>
+ 
+@@ -260,8 +261,9 @@ export function BottomNavigation({
+                   aria-label={active ? `${item.label} (current)` : item.label}
+                   aria-current={active ? 'page' : undefined}
+                 >
+-                  <Icon className="h-6 w-6" />
+-                  <span className="font-mono text-[10px] font-medium uppercase tracking-wide leading-none">{item.label}</span>
++                  <Icon className="h-6 w-6" strokeWidth={2} />
++                  <span className="text-[11px] font-medium leading-none">{item.label}</span>
++                  {active && <span className="w-1 h-1 rounded-full bg-current" />}
+                 </button>
+ 
+                 {/* Profile menu — anchored directly above the Profile button */}
+@@ -351,9 +353,9 @@ export function BottomNavigation({
+             position: 'absolute',
+             left: '50%',
+             transform: 'translateX(-50%)',
+-            bottom: 6,
+-            width: 24,
+-            height: 24,
++            bottom: 2,
++            width: 44,
++            height: 44,
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center',
+@@ -361,9 +363,9 @@ export function BottomNavigation({
+             border: 'none',
+             background: 'transparent',
+           }}
+-          className="transition-colors duration-150 text-muted-foreground hover:text-foreground active:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
++          className="transition-colors duration-150 text-paper/70 hover:text-paper active:text-paper focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+         >
+-          <MessageSquare className="h-5 w-5" strokeWidth={1.5} />
++          <MessageSquare className="h-5 w-5" strokeWidth={2} />
+         </button>
+       </nav>
+     </div>
+diff --git a/src/components/layout/EmptyState.tsx b/src/components/layout/EmptyState.tsx
+index faebb1d..9bd40c3 100644
+--- a/src/components/layout/EmptyState.tsx
++++ b/src/components/layout/EmptyState.tsx
+@@ -49,7 +49,7 @@ import { Button } from '@/components/ui/button'
+ // ---------------------------------------------------------------------------
+ 
+ type EmptyStateVariant =
+-  | 'default'    // standard list empty — orange-tinted icon bg
++  | 'default'    // standard list empty — Stall-tinted icon bg
+   | 'search'     // no search results — neutral icon bg
+   | 'offline'    // no connectivity — neutral icon bg
+   | 'error'      // failed to load — red-tinted icon bg
+@@ -103,10 +103,10 @@ export interface EmptyStateProps {
+ // ---------------------------------------------------------------------------
+ 
+ const iconContainerVariants: Record<EmptyStateVariant, string> = {
+-  default: 'bg-orange-50 text-orange-400',
+-  search:  'bg-gray-100  text-gray-400',
+-  offline: 'bg-gray-100  text-gray-400',
+-  error:   'bg-red-50    text-red-400',
++  default: 'bg-primary/10 text-primary',
++  search:  'bg-muted  text-muted-foreground',
++  offline: 'bg-muted  text-muted-foreground',
++  error:   'bg-danger-bg    text-danger',
+ }
+ 
+ // ---------------------------------------------------------------------------
+@@ -117,16 +117,16 @@ function EmptyStateSkeleton() {
+   return (
+     <div className="flex flex-col items-center gap-4 py-16 px-8 animate-pulse">
+       {/* Icon placeholder */}
+-      <div className="w-16 h-16 rounded-full bg-gray-100" />
++      <div className="w-16 h-16 rounded-full bg-muted" />
+       {/* Heading placeholder */}
+-      <div className="h-4 w-36 rounded-full bg-gray-100" />
++      <div className="h-4 w-36 rounded-full bg-muted" />
+       {/* Description placeholder */}
+       <div className="flex flex-col items-center gap-2 w-full">
+-        <div className="h-3 w-56 rounded-full bg-gray-100" />
+-        <div className="h-3 w-44 rounded-full bg-gray-100" />
++        <div className="h-3 w-56 rounded-full bg-muted" />
++        <div className="h-3 w-44 rounded-full bg-muted" />
+       </div>
+       {/* Button placeholder */}
+-      <div className="h-11 w-full rounded-xl bg-gray-100 mt-2" />
++      <div className="h-11 w-full rounded-xl bg-muted mt-2" />
+     </div>
+   )
+ }
+@@ -185,12 +185,12 @@ export function EmptyState({
+       {(heading || description) && (
+         <div className="flex flex-col items-center gap-1.5 max-w-[280px]">
+           {heading && (
+-            <h2 className="text-base font-semibold text-gray-900 leading-snug">
++            <h2 className="text-base font-semibold text-foreground leading-snug">
+               {heading}
+             </h2>
+           )}
+           {description && (
+-            <p className="text-sm text-gray-500 leading-relaxed">
++            <p className="text-sm text-muted-foreground leading-relaxed">
+               {description}
+             </p>
+           )}
+diff --git a/src/components/layout/EntityCard.tsx b/src/components/layout/EntityCard.tsx
+index 49e1d8c..59e4ee8 100644
+--- a/src/components/layout/EntityCard.tsx
++++ b/src/components/layout/EntityCard.tsx
+@@ -6,7 +6,7 @@
+  * card surface.
+  *
+  * Rules (from DESIGN_SYSTEM.md):
+- *   - Background: white, rounded-xl, border border-gray-200
++ *   - Background: card token, rounded-xl, border token
+  *   - Title:    one line, truncates, font-semibold
+  *   - Subtitle: one line, truncates, text-secondary
+  *   - Badge:    status only, one per card maximum
+@@ -49,6 +49,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react'
+ import { createPortal } from 'react-dom'
+ import { MoreVertical, ChevronRight } from 'lucide-react'
+ import { cn } from '@/lib/utils'
++import { Button } from '@/components/ui/button'
+ 
+ // ---------------------------------------------------------------------------
+ // Types
+@@ -107,11 +108,13 @@ export interface EntityCardProps {
+ // Badge styles
+ // ---------------------------------------------------------------------------
+ 
++// Status palettes (upcoming/active/error hues) are intentional — there are
++// no success/info design tokens; archived/draft use design tokens.
+ const badgeStyles: Record<BadgeVariant, string> = {
+   upcoming: 'bg-blue-50   text-blue-700',
+   active:   'bg-green-50  text-green-700',
+-  archived: 'bg-gray-100  text-gray-500',
+-  draft:    'bg-orange-50 text-orange-700',
++  archived: 'bg-muted  text-muted-foreground',
++  draft:    'bg-field-warn text-danger',
+   error:    'bg-red-50    text-red-600',
+ }
+ 
+@@ -232,8 +235,8 @@ function ActionMenu({ actions, onClose, triggerRef }: ActionMenuProps) {
+         }}
+         className={cn(
+           'w-48',
+-          'bg-white rounded-xl',
+-          'border border-gray-200',
++          'bg-card rounded-xl',
++          'border border-border',
+           'shadow-lg shadow-black/10',
+           'overflow-hidden',
+         )}
+@@ -249,7 +252,7 @@ function ActionMenu({ actions, onClose, triggerRef }: ActionMenuProps) {
+ 
+         {/* Divider before destructive actions */}
+         {destructiveActions.length > 0 && standardActions.length > 0 && (
+-          <div className="border-t border-gray-200 my-0.5" />
++          <div className="border-t border-border my-0.5" />
+         )}
+ 
+         {/* Destructive actions */}
+@@ -274,7 +277,8 @@ function ActionMenuItem({
+   onClose: () => void
+ }) {
+   return (
+-    <button
++    <Button
++      variant="ghost"
+       role="menuitem"
+       disabled={action.disabled}
+       onClick={() => {
+@@ -284,13 +288,13 @@ function ActionMenuItem({
+         }
+       }}
+       className={cn(
+-        'w-full flex items-center gap-3',
++        'w-full h-auto rounded-none justify-start gap-3',
+         'px-4 py-3',
+-        'text-sm text-left',
++        'text-sm text-left font-normal',
+         'transition-colors duration-100',
+         action.destructive
+-          ? 'text-red-600 hover:bg-red-50 active:bg-red-100'
+-          : 'text-gray-700 hover:bg-gray-50 active:bg-gray-100',
++          ? 'text-danger hover:bg-danger-bg active:bg-danger-bg'
++          : 'text-foreground hover:bg-muted active:bg-accent',
+         action.disabled && 'opacity-40 cursor-not-allowed',
+       )}
+     >
+@@ -299,7 +303,7 @@ function ActionMenuItem({
+         {action.icon}
+       </span>
+       <span>{action.label}</span>
+-    </button>
++    </Button>
+   )
+ }
+ 
+@@ -326,8 +330,8 @@ export function EntityCard({
+   return (
+     <div
+       className={cn(
+-        'bg-white rounded-xl',
+-        'border border-gray-200',
++        'bg-card rounded-xl',
++        'border border-border',
+         'flex items-center min-w-0',
+         className,
+       )}
+@@ -349,8 +353,8 @@ export function EntityCard({
+           'p-4',
+           isNavigable && [
+             'cursor-pointer',
+-            'hover:bg-gray-50 active:bg-gray-100',
+-            'outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40',
++            'hover:bg-muted active:bg-muted',
++            'outline-none focus-visible:ring-2 focus-visible:ring-ring/40',
+             'transition-colors duration-150',
+             'rounded-l-xl',               // only left corners when overflow button present
+             !hasActions && 'rounded-xl',
+@@ -363,9 +367,9 @@ export function EntityCard({
+           <div className={cn(
+             'flex-shrink-0',
+             'w-10 h-10',
+-            'rounded-full bg-orange-50',
++            'rounded-full bg-primary/10',
+             'flex items-center justify-center',
+-            'text-orange-600',
++            'text-primary',
+             '[&>svg]:w-5 [&>svg]:h-5',
+           )}>
+             {leadingIcon}
+@@ -376,14 +380,14 @@ export function EntityCard({
+         <div className="flex-1 min-w-0">
+           {/* Title row: title + badge */}
+           <div className="flex items-center gap-2 min-w-0">
+-            <span className="text-sm font-semibold text-gray-900 truncate min-w-0">
++            <span className="font-display text-sm font-semibold text-foreground truncate min-w-0">
+               {title}
+             </span>
+             {badge && (
+               <StatusBadge label={badge.label} variant={badge.variant} />
+             )}
+             {countChip && (
+-              <span className="inline-flex items-center text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
++              <span className="inline-flex items-center text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full whitespace-nowrap flex-shrink-0">
+                 {countChip}
+               </span>
+             )}
+@@ -391,7 +395,7 @@ export function EntityCard({
+ 
+           {/* Subtitle */}
+           {subtitle && (
+-            <p className="text-xs text-gray-500 truncate mt-0.5">
++            <p className="text-xs text-muted-foreground truncate mt-0.5">
+               {subtitle}
+             </p>
+           )}
+@@ -399,14 +403,16 @@ export function EntityCard({
+ 
+         {/* Right chevron — only when navigable and no overflow menu */}
+         {isNavigable && !hasActions && (
+-          <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0" />
++          <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+         )}
+       </div>
+ 
+       {/* ── Overflow action trigger ── */}
+       {hasActions && (
+         <div className="flex-shrink-0 pr-1">
+-          <button
++          <Button
++            variant="ghost"
++            size="icon"
+             ref={triggerRef}
+             aria-label={`Actions for ${title}`}
+             aria-haspopup="menu"
+@@ -417,17 +423,13 @@ export function EntityCard({
+             }}
+             className={cn(
+               // 44x44px touch target (DESIGN_SYSTEM.md)
+-              'w-11 h-11',
+-              'flex items-center justify-center',
+-              'rounded-full',
+-              'text-gray-400',
+-              'hover:bg-gray-100 active:bg-gray-200',
+-              'hover:text-gray-600',
+-              'transition-colors duration-150',
++              'w-11 h-11 rounded-full',
++              'text-muted-foreground',
++              'hover:text-foreground',
+             )}
+           >
+             <MoreVertical className="w-5 h-5" />
+-          </button>
++          </Button>
+ 
+           {/* Action menu — rendered via Portal to escape overflow:hidden */}
+           {menuOpen && (
+diff --git a/src/components/layout/PageHeader.tsx b/src/components/layout/PageHeader.tsx
+index afc65e2..68af723 100644
+--- a/src/components/layout/PageHeader.tsx
++++ b/src/components/layout/PageHeader.tsx
+@@ -39,6 +39,7 @@
+ import React from 'react'
+ import { ChevronLeft, X } from 'lucide-react'
+ import { cn } from '@/lib/utils'   // shadcn/ui utility — adjust path if needed
++import { Button } from '@/components/ui/button'
+ 
+ interface PageHeaderProps {
+   /** Primary heading — truncates if too long, never wraps */
+@@ -106,21 +107,20 @@ export function PageHeader({
+     >
+       {/* ── Left slot: back chevron ── */}
+       {hasLeftSlot && (
+-        <button
++        <Button
++          variant="ghost"
++          size="icon"
+           onClick={onBack}
+           aria-label="Go back"
+           className={cn(
+             // 44x44px minimum touch target (DESIGN_SYSTEM.md rule)
+             'flex-shrink-0 -ml-1',
+-            'w-11 h-11 flex items-center justify-center',
+-            'rounded-full',
++            'w-11 h-11 rounded-full',
+             'text-foreground',
+-            'hover:bg-muted active:bg-muted',
+-            'transition-colors duration-150',
+           )}
+         >
+           <ChevronLeft className="w-6 h-6" strokeWidth={2} />
+-        </button>
++        </Button>
+       )}
+ 
+       {/* ── Centre: title + subtitle ── */}
+@@ -133,14 +133,14 @@ export function PageHeader({
+       <div className="flex-1 min-w-0 flex flex-col justify-center">
+         <h1
+           className={cn(
+-            'text-xl font-bold text-foreground',
++            'font-display text-xl font-bold text-foreground',
+             'truncate leading-tight',
+           )}
+         >
+           {title}
+         </h1>
+         {subtitle && (
+-          <p className="font-mono text-xs text-muted-foreground truncate leading-tight mt-0.5">
++          <p className="text-xs text-muted-foreground truncate leading-tight mt-0.5">
+             {subtitle}
+           </p>
+         )}
+@@ -151,19 +151,18 @@ export function PageHeader({
+         <div className="flex-shrink-0">
+           {onClose ? (
+             /* Close button — used in modals/sheets */
+-            <button
++            <Button
++              variant="ghost"
++              size="icon"
+               onClick={onClose}
+               aria-label="Close"
+               className={cn(
+-                'w-11 h-11 flex items-center justify-center',
+-                'rounded-full',
++                'w-11 h-11 rounded-full',
+                 'text-muted-foreground',
+-                'hover:bg-muted active:bg-muted',
+-                'transition-colors duration-150',
+               )}
+             >
+               <X className="w-5 h-5" strokeWidth={2} />
+-            </button>
++            </Button>
+           ) : (
+             /* Arbitrary action — Button, icon button, etc. */
+             action
+diff --git a/src/components/mobile/SwipeActions.tsx b/src/components/mobile/SwipeActions.tsx
+index 6db888b..a67bafb 100644
+--- a/src/components/mobile/SwipeActions.tsx
++++ b/src/components/mobile/SwipeActions.tsx
+@@ -119,7 +119,7 @@ export function SwipeActions({
+           <div
+             className={`
+               flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200
+-              ${currentAction === 'edit' ? 'bg-blue-500 text-white' : 'bg-blue-100 text-blue-600'}
++              ${currentAction === 'edit' ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary'}
+             `}
+             style={{
+               opacity: Math.max(0, translateX / snapThreshold),
+@@ -136,8 +136,7 @@ export function SwipeActions({
+           <div
+             className={`
+               flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200
+-              ${currentAction === 'delete' ? 'bg-red-500 text-white' : 'bg-red-100 text-red-600'}
+-              ${currentAction === 'archive' ? 'bg-amber-500 text-white' : 'bg-amber-100 text-amber-600'}
++              ${onArchive ? (currentAction === 'archive' ? 'bg-primary text-primary-foreground' : 'bg-primary/10 text-primary') : (currentAction === 'delete' ? 'bg-destructive text-destructive-foreground' : 'bg-danger-bg text-danger')}
+             `}
+             style={{
+               opacity: Math.max(0, -translateX / snapThreshold),
+diff --git a/src/components/offline/OfflineIndicator.tsx b/src/components/offline/OfflineIndicator.tsx
+index a68bd79..7c0a444 100644
+--- a/src/components/offline/OfflineIndicator.tsx
++++ b/src/components/offline/OfflineIndicator.tsx
+@@ -81,8 +81,8 @@ export function OfflineIndicator({ className, position = 'top' }: OfflineIndicat
+         isTop ? 'top-0' : 'bottom-0',
+         // Background colors
+         !isOnline && 'bg-destructive text-destructive-foreground',
+-        isOnline && syncing && 'bg-blue-600 text-white',
+-        isOnline && !syncing && pendingCount > 0 && 'bg-amber-500 text-white',
++        isOnline && syncing && 'bg-primary text-primary-foreground',
++        isOnline && !syncing && pendingCount > 0 && 'bg-field-warn text-danger',
+         className
+       )}
+     >
+@@ -144,7 +144,7 @@ export function OfflineStatusBadge({ className }: { className?: string }) {
+       className={cn(
+         'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium',
+         !isOnline && 'bg-destructive/10 text-destructive',
+-        isOnline && pendingCount > 0 && 'bg-amber-500/10 text-amber-600',
++        isOnline && pendingCount > 0 && 'bg-field-warn text-danger',
+         className
+       )}
+     >
+diff --git a/src/components/offline/SyncProgressIndicator.tsx b/src/components/offline/SyncProgressIndicator.tsx
+index 6f2a4f9..5f22111 100644
+--- a/src/components/offline/SyncProgressIndicator.tsx
++++ b/src/components/offline/SyncProgressIndicator.tsx
+@@ -151,12 +151,12 @@ export function SyncProgressIndicator({
+         {/* Status Summary */}
+         <div className="flex items-center gap-4 text-sm">
+           <div className="flex items-center gap-1.5">
+-            <CheckCircle2 className="w-4 h-4 text-green-600" />
++            <CheckCircle2 className="w-4 h-4 text-primary" />
+             <span>{status.totalSynced} synced</span>
+           </div>
+           {status.totalQueued > 0 && (
+             <div className="flex items-center gap-1.5">
+-              <AlertCircle className="w-4 h-4 text-amber-600" />
++              <AlertCircle className="w-4 h-4 text-primary" />
+               <span>{status.totalQueued} pending</span>
+             </div>
+           )}
+@@ -223,10 +223,10 @@ export function SyncProgressIndicator({
+                 key={item.id}
+                 className={cn(
+                   'flex items-center justify-between py-1 px-2 rounded',
+-                  item.status === 'synced' && 'bg-green-50 text-green-700',
+-                  item.status === 'failed' && 'bg-red-50 text-red-700',
+-                  item.status === 'queued' && 'bg-amber-50 text-amber-700',
+-                  item.status === 'uploading' && 'bg-blue-50 text-blue-700'
++                  item.status === 'synced' && 'bg-muted text-foreground',
++                  item.status === 'failed' && 'bg-danger-bg text-danger',
++                  item.status === 'queued' && 'bg-field-warn text-danger',
++                  item.status === 'uploading' && 'bg-primary/10 text-primary'
+                 )}
+               >
+                 <span className="truncate flex-1">{item.type}</span>
+@@ -274,7 +274,7 @@ export function SyncStatusBadge({ className }: { className?: string }) {
+     <div
+       className={cn(
+         'flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium',
+-        'bg-blue-600 text-white',
++        'bg-primary text-primary-foreground',
+         syncing && 'animate-pulse',
+         className
+       )}
+diff --git a/src/components/review/ConfidenceIndicator.tsx b/src/components/review/ConfidenceIndicator.tsx
+index db7fcee..d8546a8 100644
+--- a/src/components/review/ConfidenceIndicator.tsx
++++ b/src/components/review/ConfidenceIndicator.tsx
+@@ -5,6 +5,9 @@
+  * Used across review and capture screens.
+  */
+ 
++// Categorical confidence tiers (green/amber/red) are intentional status
++// coding, like EntityCard badge hues — not brand surfaces; the warning
++// system for fields is bg-field-warn + border-danger (DESIGN_SYSTEM.md).
+ import { Check, AlertTriangle } from 'lucide-react'
+ import { cn } from '@/lib/utils/cn'
+ import { Badge } from '@/components/ui/badge'
+diff --git a/src/components/review/ConfidenceSummary.tsx b/src/components/review/ConfidenceSummary.tsx
+index d2ac4de..ff56c13 100644
+--- a/src/components/review/ConfidenceSummary.tsx
++++ b/src/components/review/ConfidenceSummary.tsx
+@@ -11,6 +11,9 @@
+  * - Visual representation of confidence distribution
+  */
+ 
++// Categorical confidence tiers (green/amber/red) are intentional status
++// coding, like EntityCard badge hues — not brand surfaces; the warning
++// system for fields is bg-field-warn + border-danger (DESIGN_SYSTEM.md).
+ import { useMemo } from 'react'
+ import { Check, AlertTriangle, AlertCircle } from 'lucide-react'
+ import { cn } from '@/lib/utils/cn'
+diff --git a/src/components/review/ModifiedIndicator.tsx b/src/components/review/ModifiedIndicator.tsx
+index c33e5ad..065e028 100644
+--- a/src/components/review/ModifiedIndicator.tsx
++++ b/src/components/review/ModifiedIndicator.tsx
+@@ -27,10 +27,10 @@ export function ModifiedIndicator({ onRevert, isDisabled }: ModifiedIndicatorPro
+       className={cn(
+         'inline-flex items-center gap-1 text-xs font-medium',
+         'px-2 py-0.5 rounded-full',
+-        'bg-blue-50 dark:bg-blue-950/30',
+-        'text-blue-600 dark:text-blue-400',
+-        'border border-blue-200 dark:border-blue-900/50',
+-        'hover:bg-blue-100 dark:hover:bg-blue-950/50',
++        'bg-muted',
++        'text-muted-foreground',
++        'border border-border',
++        'hover:bg-accent',
+         'transition-colors',
+         'disabled:opacity-50 disabled:cursor-not-allowed'
+       )}
+diff --git a/src/components/ui/ConfidenceBadge.tsx b/src/components/ui/ConfidenceBadge.tsx
+index ff77fed..5a19495 100644
+--- a/src/components/ui/ConfidenceBadge.tsx
++++ b/src/components/ui/ConfidenceBadge.tsx
+@@ -8,6 +8,9 @@
+  * - 0-0.5: red ("Low") with percentage
+  */
+ 
++// Categorical confidence tiers (green/amber/red) are intentional status
++// coding, like EntityCard badge hues — not brand surfaces; the warning
++// system for fields is bg-field-warn + border-danger (DESIGN_SYSTEM.md).
+ import { cn } from '@/lib/utils/cn'
+ 
+ export interface ConfidenceBadgeProps {
+diff --git a/src/components/ui/EmptyState.tsx b/src/components/ui/EmptyState.tsx
+index 24425e4..1605b40 100644
+--- a/src/components/ui/EmptyState.tsx
++++ b/src/components/ui/EmptyState.tsx
+@@ -153,19 +153,19 @@ export function EmptyState({
+       {/* Fabric-themed illustration */}
+       {illustration || (
+         <div className={cn(
+-          'rounded-2xl bg-gradient-to-br from-orange-100 to-orange-50 dark:from-orange-950/30 dark:to-orange-900/20 flex items-center justify-center mb-6 relative overflow-hidden',
++          'rounded-2xl bg-primary/10 flex items-center justify-center mb-6 relative overflow-hidden',
+           containerSizeClasses[size]
+         )}>
+           {/* Subtle fabric pattern overlay */}
+           <div className="absolute inset-0 opacity-[0.03]">
+             <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+               <pattern id="empty-fabric-pattern" patternUnits="userSpaceOnUse" width="8" height="8">
+-                <circle cx="4" cy="4" r="1" fill="currentColor" className="text-orange-500" />
++                <circle cx="4" cy="4" r="1" fill="currentColor" className="text-primary" />
+               </pattern>
+               <rect width="100" height="100" fill="url(#empty-fabric-pattern)" />
+             </svg>
+           </div>
+-          {icon || <Package className={cn('text-orange-500 relative z-10', sizeClasses[size])} />}
++          {icon || <Package className={cn('text-primary relative z-10', sizeClasses[size])} />}
+         </div>
+       )}
+ 
+@@ -214,7 +214,7 @@ export function VendorEmptyState(props: {
+ }) {
+   return (
+     <EmptyState
+-      icon={<Building2 className="h-12 w-12 text-orange-500 relative z-10" />}
++      icon={<Building2 className="h-12 w-12 text-primary relative z-10" />}
+       title="No vendors yet"
+       description="Vendors will appear here after capture. Start by adding your first vendor."
+       action={props.onAddVendor ? {
+@@ -239,7 +239,7 @@ export function StyleEmptyState(props: {
+   if (!hasAnyStyles) {
+     return (
+       <EmptyState
+-        icon={<Package className="h-12 w-12 text-orange-500 relative z-10" />}
++        icon={<Package className="h-12 w-12 text-primary relative z-10" />}
+         title="No styles yet"
+         description="Styles will appear here after capture. Start by adding your first style."
+         action={onAddStyle ? {
+@@ -255,7 +255,7 @@ export function StyleEmptyState(props: {
+   // No styles for specific vendor (but styles exist elsewhere)
+   return (
+     <EmptyState
+-      icon={<Package className="h-12 w-12 text-orange-500 relative z-10" />}
++      icon={<Package className="h-12 w-12 text-primary relative z-10" />}
+       title="No styles for this vendor"
+       description="This vendor doesn't have any styles yet. Capture your first style to get started."
+       action={onAddStyle && vendorId ? {
+@@ -274,7 +274,7 @@ export function SearchEmptyState(props: {
+ }) {
+   return (
+     <EmptyState
+-      icon={<Search className="h-12 w-12 text-orange-500 relative z-10" />}
++      icon={<Search className="h-12 w-12 text-primary relative z-10" />}
+       title="No results found"
+       description={`No items match "${props.searchQuery}". Try adjusting your search terms.`}
+       className={props.className}
+diff --git a/src/components/ui/badge.tsx b/src/components/ui/badge.tsx
+index f2a69de..279ef0c 100644
+--- a/src/components/ui/badge.tsx
++++ b/src/components/ui/badge.tsx
+@@ -11,9 +11,9 @@ const badgeVariants = cva(
+         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
+         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/80',
+         outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+-        success: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+-        warning: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+-        info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
++        success: 'bg-muted text-muted-foreground',
++        warning: 'bg-field-warn text-danger border border-danger',
++        info: 'bg-primary/10 text-primary',
+         // Stall accent with Ink text (DESIGN_SYSTEM.md: never white on Stall)
+         accent: 'bg-primary text-primary-foreground hover:bg-primary/90',
+         // Soft Stall tint for emphasis without a filled button surface
+diff --git a/src/components/ui/form/EditScreenStates.tsx b/src/components/ui/form/EditScreenStates.tsx
+index 94af4a0..8c4865b 100644
+--- a/src/components/ui/form/EditScreenStates.tsx
++++ b/src/components/ui/form/EditScreenStates.tsx
+@@ -24,7 +24,7 @@ export function EditScreenLoading({ entity, className }: EditScreenLoadingProps)
+   return (
+     <AppFrame className={className}>
+       <div className="flex flex-col items-center gap-3">
+-        <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
++        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         <p className="text-muted-foreground">Loading {entity}...</p>
+       </div>
+     </AppFrame>
+diff --git a/src/components/ui/navigation-footer.tsx b/src/components/ui/navigation-footer.tsx
+index 2e7609d..48975b2 100644
+--- a/src/components/ui/navigation-footer.tsx
++++ b/src/components/ui/navigation-footer.tsx
+@@ -65,9 +65,9 @@ export function NavigationFooter({
+               className={cn(
+                 'flex-1 flex flex-col items-center justify-center py-2 px-3 transition-colors',
+                 'min-h-[3.5rem]',
+-                'focus-visible:ring-2 focus-visible:ring-orange-500/30 focus-visible:outline-none',
++                'focus-visible:ring-2 focus-visible:ring-ring/30 focus-visible:outline-none',
+                 isActive
+-                  ? 'text-orange-500'
++                  ? 'text-primary'
+                   : 'text-muted-foreground hover:text-foreground'
+               )}
+             >
+diff --git a/src/components/ui/toast.tsx b/src/components/ui/toast.tsx
+index 6533363..b3a9b05 100644
+--- a/src/components/ui/toast.tsx
++++ b/src/components/ui/toast.tsx
+@@ -8,10 +8,10 @@ const toastVariants = cva(
+   {
+     variants: {
+       variant: {
+-        success: 'bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800',
+-        error: 'bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800',
+-        warning: 'bg-yellow-50 border-yellow-200 dark:bg-yellow-950 dark:border-yellow-800',
+-        info: 'bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800',
++        success: 'bg-muted border-border',
++        error: 'bg-danger-bg border-danger',
++        warning: 'bg-field-warn border-danger',
++        info: 'bg-primary/10 border-border',
+         default: 'bg-background border-border',
+       },
+     },
+diff --git a/src/features/admin/components/TaskCard.tsx b/src/features/admin/components/TaskCard.tsx
+index 167c53c..2cd8c12 100644
+--- a/src/features/admin/components/TaskCard.tsx
++++ b/src/features/admin/components/TaskCard.tsx
+@@ -52,7 +52,7 @@ export function TaskCard({ task, onTaskClick }: TaskCardProps) {
+   const unplanned = !plannedReady
+ 
+   const plannedStatusClass = unplanned
+-    ? 'bg-amber-200 dark:bg-amber-700/50 border-amber-400 dark:border-amber-500'
++    ? 'bg-field-warn border-danger'
+     : blockedByDeps
+       ? 'bg-slate-300 dark:bg-slate-600/50 border-slate-400 dark:border-slate-500'
+       : 'bg-card border-border'
+diff --git a/src/features/admin/components/TaskColumn.tsx b/src/features/admin/components/TaskColumn.tsx
+index f62cf88..118026b 100644
+--- a/src/features/admin/components/TaskColumn.tsx
++++ b/src/features/admin/components/TaskColumn.tsx
+@@ -22,7 +22,7 @@ const STATE_HEADER_COLOURS: Record<BoardColumn, string> = {
+ 
+ const STATE_COUNT_COLOURS: Record<BoardColumn, string> = {
+   todo: 'bg-slate-400 text-slate-900 dark:bg-slate-500 dark:text-slate-100',
+-  planned: 'bg-orange-500 text-white dark:bg-orange-600 dark:text-orange-100',
++  planned: 'bg-primary text-primary-foreground',
+   in_progress: 'bg-blue-500 text-white dark:bg-blue-600 dark:text-blue-100',
+   blocked: 'bg-red-500 text-white dark:bg-red-600 dark:text-red-100',
+   done: 'bg-green-500 text-white dark:bg-green-600 dark:text-green-100',
+diff --git a/src/features/analytics/CaptureProgressMetrics.tsx b/src/features/analytics/CaptureProgressMetrics.tsx
+index 5091e1f..66b847d 100644
+--- a/src/features/analytics/CaptureProgressMetrics.tsx
++++ b/src/features/analytics/CaptureProgressMetrics.tsx
+@@ -100,7 +100,7 @@ export function CaptureProgressMetrics() {
+                   <p className="text-xs text-muted-foreground">Captured</p>
+                 </div>
+                 <div className="space-y-1">
+-                  <p className="text-2xl font-bold text-orange-600">
++                  <p className="text-2xl font-bold text-primary">
+                     {progress.remaining_vendors}
+                   </p>
+                   <p className="text-xs text-muted-foreground">Remaining</p>
+diff --git a/src/features/analytics/ExtractionQualityReport.tsx b/src/features/analytics/ExtractionQualityReport.tsx
+index 6a1cb4d..10f93bd 100644
+--- a/src/features/analytics/ExtractionQualityReport.tsx
++++ b/src/features/analytics/ExtractionQualityReport.tsx
+@@ -88,7 +88,7 @@ export function ExtractionQualityReport() {
+                       quality.average_confidence < 0.5
+                         ? 'bg-yellow-600'
+                         : quality.average_confidence < 0.7
+-                          ? 'bg-orange-500'
++                          ? 'bg-primary'
+                           : 'bg-green-600'
+                     }`}
+                     style={{ width: `${overallPercentage}%` }}
+diff --git a/src/features/analytics/PopularStyles.tsx b/src/features/analytics/PopularStyles.tsx
+index f021b82..3fc8aea 100644
+--- a/src/features/analytics/PopularStyles.tsx
++++ b/src/features/analytics/PopularStyles.tsx
+@@ -58,7 +58,7 @@ export function PopularStyles({ eventId, className }: PopularStylesProps) {
+   const getRankBadgeColor = (rank: number) => {
+     if (rank === 1) return 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300'
+     if (rank === 2) return 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300'
+-    if (rank === 3) return 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300'
++    if (rank === 3) return 'bg-primary/10 text-primary dark:bg-primary/30 dark:text-primary'
+     return 'bg-muted text-muted-foreground'
+   }
+ 
+diff --git a/src/features/analytics/VendorAttendanceList.tsx b/src/features/analytics/VendorAttendanceList.tsx
+index f0fc117..c543d8c 100644
+--- a/src/features/analytics/VendorAttendanceList.tsx
++++ b/src/features/analytics/VendorAttendanceList.tsx
+@@ -187,7 +187,7 @@ export function VendorAttendanceList() {
+                   <p className="text-xs text-muted-foreground">Captured</p>
+                 </div>
+                 <div className="space-y-1">
+-                  <p className="text-2xl font-bold text-orange-600">
++                  <p className="text-2xl font-bold text-primary">
+                     {attendance.total - attendance.captured_count}
+                   </p>
+                   <p className="text-xs text-muted-foreground">Not Captured</p>
+@@ -250,7 +250,7 @@ export function VendorAttendanceList() {
+ 
+             <Card>
+               <CardHeader>
+-                <CardTitle className="text-orange-600">
++                <CardTitle className="text-primary">
+                   Not Captured ({attendance.total - attendance.captured_count})
+                 </CardTitle>
+               </CardHeader>
+diff --git a/src/features/events/components/EventMembersSection.tsx b/src/features/events/components/EventMembersSection.tsx
+index 60c84a6..20dc8bd 100644
+--- a/src/features/events/components/EventMembersSection.tsx
++++ b/src/features/events/components/EventMembersSection.tsx
+@@ -169,7 +169,7 @@ export function EventMembersSection({
+   if (state === 'loading') {
+     return (
+       <div className="flex items-center justify-center py-8">
+-        <Loader2 className="h-6 w-6 animate-spin text-orange-500" />
++        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+       </div>
+     )
+   }
+@@ -313,7 +313,7 @@ export function EventMembersSection({
+         confirmText="Remove"
+         cancelText="Keep Member"
+         variant="destructive"
+-        icon={<Shield className="h-6 w-6 text-amber-500" />}
++        icon={<Shield className="h-6 w-6 text-danger" />}
+         isConfirming={isRemoving}
+       />
+     </>
+diff --git a/src/features/events/screens/EventCreateScreen.tsx b/src/features/events/screens/EventCreateScreen.tsx
+index e54104b..aa3ed8f 100644
+--- a/src/features/events/screens/EventCreateScreen.tsx
++++ b/src/features/events/screens/EventCreateScreen.tsx
+@@ -274,7 +274,7 @@ export function EventCreateScreen({
+     return (
+       <AppFrame className={cn('flex items-center justify-center', className)}>
+         <div className="flex flex-col items-center gap-3">
+-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
++          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+           <p className="text-muted-foreground">Loading event data...</p>
+         </div>
+       </AppFrame>
+@@ -338,7 +338,7 @@ export function EventCreateScreen({
+           <SectionContainer
+             title="Basic Info"
+             description="Event identity and current status"
+-            icon={<Building2 className="h-5 w-5 text-orange-500" />}
++            icon={<Building2 className="h-5 w-5 text-primary" />}
+           >
+             <div className="space-y-5">
+               <Input
+@@ -362,7 +362,7 @@ export function EventCreateScreen({
+                 <select
+                   id="status"
+                   {...register('status')}
+-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-orange-500/50"
++                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all hover:border-primary/50"
+                 >
+                   <option value="upcoming">Upcoming</option>
+                   <option value="active">Active</option>
+@@ -379,7 +379,7 @@ export function EventCreateScreen({
+           <SectionContainer
+             title="Location"
+             description="Where the event is held"
+-            icon={<MapPin className="h-5 w-5 text-orange-500" />}
++            icon={<MapPin className="h-5 w-5 text-primary" />}
+           >
+             <div className="space-y-5">
+               <div className="grid grid-cols-2 gap-4">
+@@ -411,7 +411,7 @@ export function EventCreateScreen({
+           <SectionContainer
+             title="Dates"
+             description="When the event takes place"
+-            icon={<Calendar className="h-5 w-5 text-orange-500" />}
++            icon={<Calendar className="h-5 w-5 text-primary" />}
+           >
+             <div className="grid grid-cols-2 gap-4">
+               <Input
+@@ -434,7 +434,7 @@ export function EventCreateScreen({
+           <SectionContainer
+             title="Cover Image"
+             description="Optional visual represention"
+-            icon={<ImageIcon className="h-5 w-5 text-orange-500" />}
++            icon={<ImageIcon className="h-5 w-5 text-primary" />}
+           >
+             <div className="space-y-4">
+               <Input
+@@ -467,7 +467,7 @@ export function EventCreateScreen({
+             <SectionContainer
+               title="Event Members"
+               description="Manage team access"
+-              icon={<Users className="h-5 w-5 text-orange-500" />}
++              icon={<Users className="h-5 w-5 text-primary" />}
+             >
+               <EventMembersSection
+                 eventId={eventId}
+@@ -520,7 +520,7 @@ export function EventCreateScreen({
+         confirmText="Discard Changes"
+         cancelText="Keep Editing"
+         variant="destructive"
+-        icon={<AlertTriangle className="h-6 w-6 text-amber-500" />}
++        icon={<AlertTriangle className="h-6 w-6 text-danger" />}
+       />
+     </AppFrame>
+   )
+diff --git a/src/features/events/screens/EventsScreen.tsx b/src/features/events/screens/EventsScreen.tsx
+index 853fd45..6c626bf 100644
+--- a/src/features/events/screens/EventsScreen.tsx
++++ b/src/features/events/screens/EventsScreen.tsx
+@@ -212,7 +212,7 @@ export function EventsScreen() {
+       />
+ 
+       {/* ── Status tabs (underline indicator) ── */}
+-      <div className="border-b border-gray-200 bg-white">
++      <div className="border-b border-border bg-background">
+         <Tabs value={activeTab} onValueChange={(v) => startTransition(() => setActiveTab(v as EventStatus))}>
+           <TabsList
+             className={cn(
+@@ -235,12 +235,12 @@ export function EventsScreen() {
+                     'px-3 pb-3 pt-2',
+                     'text-sm font-medium',
+                     // Colour states
+-                    'text-gray-400',
+-                    'data-[state=active]:text-orange-600',
++                    'text-muted-foreground',
++                    'data-[state=active]:text-primary',
+                     // Underline indicator on active
+                     'after:absolute after:bottom-0 after:left-3 after:right-3',
+                     'after:h-0.5 after:rounded-full',
+-                    'after:bg-orange-500 after:scale-x-0',
++                    'after:bg-primary after:scale-x-0',
+                     'after:transition-transform after:duration-200 after:ease-out',
+                     'data-[state=active]:after:scale-x-100',
+                   )}
+@@ -255,9 +255,9 @@ export function EventsScreen() {
+                         'rounded-full',
+                         'text-[11px] font-semibold leading-none',
+                         // Active state: brand-tinted pill
+-                        'data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700',
++                        'data-[state=active]:bg-primary/10 data-[state=active]:text-primary',
+                         // Inactive state: neutral pill
+-                        'data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-500',
++                        'data-[state=inactive]:bg-muted data-[state=inactive]:text-muted-foreground',
+                       )}
+                     >
+                       {count}
+diff --git a/src/features/feedback/FeedbackOverlay.tsx b/src/features/feedback/FeedbackOverlay.tsx
+index 776ca02..0a1b6ec 100644
+--- a/src/features/feedback/FeedbackOverlay.tsx
++++ b/src/features/feedback/FeedbackOverlay.tsx
+@@ -84,7 +84,7 @@ export function FeedbackOverlay({ isOpen, onClose }: FeedbackOverlayProps) {
+           className={cn(
+             'flex-1 w-full min-h-[200px] rounded-lg border border-input bg-background px-4 py-3',
+             'text-sm placeholder:text-muted-foreground/50',
+-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/30',
++            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30',
+             'resize-none'
+           )}
+           disabled={submitting}
+@@ -108,10 +108,10 @@ export function FeedbackOverlay({ isOpen, onClose }: FeedbackOverlayProps) {
+           className={cn(
+             'w-full inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3',
+             'text-sm font-medium text-white',
+-            'bg-orange-500 hover:bg-orange-600 active:bg-orange-700',
++            'bg-primary hover:bg-primary/90 active:bg-primary/80',
+             'disabled:opacity-50 disabled:cursor-not-allowed',
+             'transition-colors duration-150',
+-            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50',
++            'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50',
+           )}
+         >
+           {submitting ? (
+diff --git a/src/features/notifications/components/NotificationCenter.tsx b/src/features/notifications/components/NotificationCenter.tsx
+index 5445356..f75f9b2 100644
+--- a/src/features/notifications/components/NotificationCenter.tsx
++++ b/src/features/notifications/components/NotificationCenter.tsx
+@@ -173,7 +173,7 @@ function NotificationItem({ notification, onClick, onDelete }: NotificationItemP
+   const content = (
+     <div
+       className={`p-4 hover:bg-accent/50 transition-colors cursor-pointer ${
+-        !notification.read_at ? 'bg-accent/30' : ''
++        !notification.read_at ? 'bg-accent text-accent-foreground' : ''
+       }`}
+       onClick={onClick}
+     >
+diff --git a/src/features/settings/screens/SettingsScreen.tsx b/src/features/settings/screens/SettingsScreen.tsx
+index 8c4caea..5fbf215 100644
+--- a/src/features/settings/screens/SettingsScreen.tsx
++++ b/src/features/settings/screens/SettingsScreen.tsx
+@@ -163,9 +163,9 @@ export function SettingsScreen() {
+                   </div>
+                   <label
+                     htmlFor="avatar-upload"
+-                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-accent hover:bg-accent/90 flex items-center justify-center cursor-pointer transition-colors"
++                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary hover:bg-primary/90 flex items-center justify-center cursor-pointer transition-colors"
+                   >
+-                    <Camera className="h-4 w-4 text-accent-foreground" />
++                    <Camera className="h-4 w-4 text-primary-foreground" />
+                     <input
+                       id="avatar-upload"
+                       type="file"
+diff --git a/src/features/styles/components/AddInventoryModal.tsx b/src/features/styles/components/AddInventoryModal.tsx
+index f30868f..2fe7a0d 100644
+--- a/src/features/styles/components/AddInventoryModal.tsx
++++ b/src/features/styles/components/AddInventoryModal.tsx
+@@ -93,7 +93,7 @@ export function AddInventoryModal({
+               value={quantity}
+               onChange={(e) => setQuantity(e.target.value)}
+               placeholder="0.00"
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             />
+           </div>
+ 
+@@ -105,7 +105,7 @@ export function AddInventoryModal({
+             <select
+               value={unit}
+               onChange={(e) => setUnit(e.target.value)}
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             >
+               <option value="meters">meters</option>
+               <option value="yards">yards</option>
+@@ -125,7 +125,7 @@ export function AddInventoryModal({
+             value={batchNo}
+             onChange={(e) => setBatchNo(e.target.value)}
+             placeholder="e.g., B2025-01"
+-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+           />
+         </div>
+ 
+@@ -137,7 +137,7 @@ export function AddInventoryModal({
+           <select
+             value={stockStatus}
+             onChange={(e) => setStockStatus(e.target.value as any)}
+-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+           >
+             <option value="in_stock">In Stock</option>
+             <option value="low_stock">Low Stock</option>
+diff --git a/src/features/styles/components/AddPriceModal.tsx b/src/features/styles/components/AddPriceModal.tsx
+index 187bd32..bc227a4 100644
+--- a/src/features/styles/components/AddPriceModal.tsx
++++ b/src/features/styles/components/AddPriceModal.tsx
+@@ -101,7 +101,7 @@ export function AddPriceModal({
+             <select
+               value={currency}
+               onChange={(e) => setCurrency(e.target.value)}
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             >
+               <option value="USD">USD</option>
+               <option value="EUR">EUR</option>
+@@ -124,7 +124,7 @@ export function AddPriceModal({
+                 value={price}
+                 onChange={(e) => setPrice(e.target.value)}
+                 placeholder="0.00"
+-                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++                className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+               />
+             </div>
+           </div>
+@@ -138,7 +138,7 @@ export function AddPriceModal({
+           <select
+             value={priceUnit}
+             onChange={(e) => setPriceUnit(e.target.value)}
+-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+           >
+             <option value="meter">per meter</option>
+             <option value="yard">per yard</option>
+@@ -158,7 +158,7 @@ export function AddPriceModal({
+               value={moq}
+               onChange={(e) => setMoq(e.target.value)}
+               placeholder="Min. Order"
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             />
+           </div>
+           <div>
+@@ -168,7 +168,7 @@ export function AddPriceModal({
+             <select
+               value={moqUnit}
+               onChange={(e) => setMoqUnit(e.target.value)}
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             >
+               <option value="meter">meters</option>
+               <option value="yard">yards</option>
+@@ -189,7 +189,7 @@ export function AddPriceModal({
+               value={leadTimeValue}
+               onChange={(e) => setLeadTimeValue(e.target.value)}
+               placeholder="e.g., 4"
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             />
+           </div>
+           <div>
+@@ -199,7 +199,7 @@ export function AddPriceModal({
+             <select
+               value={leadTimeUnit}
+               onChange={(e) => setLeadTimeUnit(e.target.value)}
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             >
+               <option value="days">days</option>
+               <option value="weeks">weeks</option>
+diff --git a/src/features/styles/components/AddVariantModal.tsx b/src/features/styles/components/AddVariantModal.tsx
+index e7786e7..9bae716 100644
+--- a/src/features/styles/components/AddVariantModal.tsx
++++ b/src/features/styles/components/AddVariantModal.tsx
+@@ -98,7 +98,7 @@ export function AddVariantModal({
+             value={variantName}
+             onChange={(e) => setVariantName(e.target.value)}
+             placeholder="e.g., Navy Base"
+-            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+           />
+         </div>
+ 
+@@ -113,7 +113,7 @@ export function AddVariantModal({
+               value={colorName}
+               onChange={(e) => setColorName(e.target.value)}
+               placeholder="e.g., Navy"
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             />
+           </div>
+           <div className="min-w-0">
+@@ -126,7 +126,7 @@ export function AddVariantModal({
+                 value={colorCode}
+                 onChange={(e) => setColorCode(e.target.value)}
+                 placeholder="e.g., NV001"
+-                className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++                className="min-w-0 flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+               />
+               {colorCode && (
+                 <div
+@@ -149,7 +149,7 @@ export function AddVariantModal({
+               value={washCode}
+               onChange={(e) => setWashCode(e.target.value)}
+               placeholder="e.g., STW"
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             />
+           </div>
+           <div>
+@@ -161,7 +161,7 @@ export function AddVariantModal({
+               value={finishOverride}
+               onChange={(e) => setFinishOverride(e.target.value)}
+               placeholder="e.g., Brushed"
+-              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-orange-500/50"
++              className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring/50"
+             />
+           </div>
+         </div>
+diff --git a/src/features/styles/components/CompactStyleCard.tsx b/src/features/styles/components/CompactStyleCard.tsx
+index deb13c1..0d38660 100644
+--- a/src/features/styles/components/CompactStyleCard.tsx
++++ b/src/features/styles/components/CompactStyleCard.tsx
+@@ -24,6 +24,7 @@
+ 
+ import { Link } from 'react-router-dom'
+ import { cn } from '@/lib/utils/cn'
++import { Button } from '@/components/ui/button'
+ import type { StyleRecord } from '@/types/style'
+ 
+ export interface CompactStyleCardProps {
+@@ -91,7 +92,7 @@ export function CompactStyleCard({
+       to={`${basePath}/styles/${style.id}`}
+       state={navigationState}
+       className={cn(
+-        'flex gap-3 p-3 bg-card rounded-xl border border-border/80 hover:border-orange-500/50 hover:bg-accent/5 hover:shadow-md hover:shadow-orange-500/5 transition-all duration-200 active:scale-[0.98] group',
++        'flex gap-3 p-3 bg-card rounded-xl border border-border/80 hover:border-primary/50 hover:bg-accent/50 hover:shadow-md hover:shadow-primary/5 transition-all duration-200 active:scale-[0.98] group',
+         className
+       )}
+     >
+@@ -104,18 +105,18 @@ export function CompactStyleCard({
+             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ease-out"
+           />
+         ) : (
+-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-950/30 via-gray-900 to-orange-900/20 relative overflow-hidden">
++          <div className="w-full h-full flex items-center justify-center bg-muted relative overflow-hidden">
+             {/* Fabric pattern overlay for texture */}
+             <div className="absolute inset-0 opacity-[0.05]">
+               <svg className="w-full h-full" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                 <pattern id="compact-fabric-pattern" patternUnits="userSpaceOnUse" width="10" height="10">
+-                  <circle cx="5" cy="5" r="1.5" fill="currentColor" className="text-orange-500" />
++                  <circle cx="5" cy="5" r="1.5" fill="currentColor" className="text-primary" />
+                 </pattern>
+                 <rect width="100" height="100" fill="url(#compact-fabric-pattern)" />
+               </svg>
+             </div>
+             <svg
+-              className="w-6 h-6 text-orange-500/30 relative z-10"
++              className="w-6 h-6 text-primary/30 relative z-10"
+               fill="none"
+               viewBox="0 0 24 24"
+               stroke="currentColor"
+@@ -134,7 +135,7 @@ export function CompactStyleCard({
+       {/* Style info - refined typography hierarchy */}
+       <div className="flex-1 min-w-0 flex flex-col justify-center">
+         {/* Style name - enhanced hover state */}
+-        <h3 className="text-sm font-semibold text-foreground truncate group-hover:text-orange-600 dark:group-hover:text-orange-500 transition-colors duration-200">
++        <h3 className="font-display text-sm font-semibold text-foreground truncate group-hover:text-foreground transition-colors duration-200">
+           {style.styleName}
+         </h3>
+ 
+@@ -166,7 +167,7 @@ export function CompactStyleCard({
+       {/* Chevron indicator - refined animation */}
+       <div className="flex-shrink-0 flex items-center">
+         <svg
+-          className="w-4 h-4 text-muted-foreground/40 group-hover:text-orange-500/80 group-hover:translate-x-0.5 transition-all duration-200"
++          className="w-4 h-4 text-muted-foreground/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200"
+           fill="none"
+           viewBox="0 0 24 24"
+           stroke="currentColor"
+@@ -237,9 +238,9 @@ export function RelatedStylesSection({
+     return (
+       <div className={cn('text-center py-10', className)}>
+         {/* Refined empty state with premium treatment */}
+-        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-950/20 via-orange-900/10 to-gray-900/20 border border-orange-500/10 mb-4 shadow-sm">
++        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 mb-4 shadow-sm">
+           <svg
+-            className="w-8 h-8 text-orange-500/40"
++            className="w-8 h-8 text-primary/60"
+             fill="none"
+             viewBox="0 0 24 24"
+             stroke="currentColor"
+@@ -257,16 +258,17 @@ export function RelatedStylesSection({
+           Capture styles to link them to this vendor
+         </p>
+         {showEmptyCTA && onEmptyCTA && (
+-          <button
+-            type="button"
++          <Button
++            variant="accent"
++            radius="pill"
+             onClick={onEmptyCTA}
+-            className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-full transition-colors duration-200 shadow-md shadow-orange-500/20 hover:shadow-orange-500/30"
++            className="mt-4 shadow-md"
+           >
+             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+             </svg>
+             {emptyCTAText}
+-          </button>
++          </Button>
+         )}
+       </div>
+     )
+diff --git a/src/features/styles/components/StyleCard.tsx b/src/features/styles/components/StyleCard.tsx
+index 7b149a5..b6ffc14 100644
+--- a/src/features/styles/components/StyleCard.tsx
++++ b/src/features/styles/components/StyleCard.tsx
+@@ -226,7 +226,7 @@ export function StyleCard({
+         </div>
+ 
+         {/* Style name */}
+-        <h3 className="text-base font-semibold text-foreground tracking-tight leading-tight mb-0.5">
++        <h3 className="font-display text-base font-semibold text-foreground tracking-tight leading-tight mb-0.5">
+           {style.styleName || 'Untitled Style'}
+         </h3>
+ 
+@@ -244,7 +244,7 @@ export function StyleCard({
+             style.latestPrice.priceUnit
+           )
+           return (
+-            <p className="text-sm font-medium text-foreground mt-1.5">
++            <p className="font-mono text-sm font-medium text-foreground mt-1.5">
+               {style.latestPrice.currency} {displayPrice.toFixed(2)}{' '}
+               <span className="text-xs text-muted-foreground font-normal">/ {displayUnit}</span>
+             </p>
+diff --git a/src/features/styles/components/StyleImageGallery.tsx b/src/features/styles/components/StyleImageGallery.tsx
+index 2356af3..603089e 100644
+--- a/src/features/styles/components/StyleImageGallery.tsx
++++ b/src/features/styles/components/StyleImageGallery.tsx
+@@ -60,7 +60,7 @@ export function StyleImageGallery({
+               onClick={() => image.public_url && onImageClick(image.public_url, index)}
+               className={cn(
+                 "relative flex-shrink-0 w-20 h-20 rounded-xl overflow-hidden bg-muted border border-border shadow-sm transition-all active:scale-95",
+-                image.id === primaryImage?.id ? "border-orange-500 ring-2 ring-orange-500/10" : "border-border hover:border-orange-500/50"
++                image.id === primaryImage?.id ? "border-primary ring-2 ring-primary/10" : "border-border hover:border-primary/50"
+               )}
+             >
+               {image.public_url ? (
+@@ -75,7 +75,7 @@ export function StyleImageGallery({
+                 </div>
+               )}
+               {image.is_primary && (
+-                <span className="absolute top-1 left-1 text-[10px] bg-orange-500 text-white px-1.5 py-0.5 rounded-md font-medium">
++                <span className="absolute top-1 left-1 text-[10px] bg-primary text-primary-foreground px-1.5 py-0.5 rounded-md font-medium">
+                   Hero
+                 </span>
+               )}
+diff --git a/src/features/styles/components/StyleInventorySection.tsx b/src/features/styles/components/StyleInventorySection.tsx
+index 07f5ef6..b894349 100644
+--- a/src/features/styles/components/StyleInventorySection.tsx
++++ b/src/features/styles/components/StyleInventorySection.tsx
+@@ -92,13 +92,13 @@ export function StyleInventorySection({
+ 
+ function StockStatusBadge({ status }: { status: string }) {
+   const styles: Record<string, string> = {
+-    in_stock: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+-    low_stock: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+-    reserved: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+-    sample_only: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+-    out_of_stock: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
++    in_stock: 'bg-primary/10 text-primary',
++    low_stock: 'bg-field-warn text-danger',
++    reserved: 'bg-muted text-muted-foreground',
++    sample_only: 'bg-muted text-muted-foreground',
++    out_of_stock: 'bg-danger-bg text-danger',
+   }
+-  const className = styles[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
++  const className = styles[status] || 'bg-muted text-muted-foreground'
+   const label = status.replace('_', ' ')
+   return (
+     <span className={cn('text-xs px-2 py-1 rounded', className)}>
+diff --git a/src/features/styles/components/StyleVariantsSection.tsx b/src/features/styles/components/StyleVariantsSection.tsx
+index 988e4f0..90cd5ee 100644
+--- a/src/features/styles/components/StyleVariantsSection.tsx
++++ b/src/features/styles/components/StyleVariantsSection.tsx
+@@ -75,7 +75,7 @@ export function StyleVariantsSection({
+                 variant.status === 'discontinued' && "opacity-60"
+               )}
+             >
+-              <div className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/5 hover:border-orange-500/30 transition-all">
++              <div className="flex items-center justify-between p-3 rounded-lg border border-border hover:bg-accent/5 hover:border-primary/30 transition-all">
+                 <div className="flex items-center gap-3 flex-1 min-w-0">
+                   {variant.color_code && (
+                     <div
+@@ -162,12 +162,12 @@ function isValidColorCode(code: string): boolean {
+ 
+ function VariantStatusBadge({ status }: { status: string }) {
+   const styles: Record<string, string> = {
+-    active: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+-    sample: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+-    partial: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+-    discontinued: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
++    active: 'bg-primary/10 text-primary',
++    sample: 'bg-muted text-muted-foreground',
++    partial: 'bg-field-warn text-danger',
++    discontinued: 'bg-danger-bg text-danger',
+   }
+-  const className = styles[status] || 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'
++  const className = styles[status] || 'bg-muted text-muted-foreground'
+   return (
+     <span className={cn('text-xs px-2 py-1 rounded', className)}>
+       {status}
+diff --git a/src/features/styles/components/edit/ExtractionPanel.tsx b/src/features/styles/components/edit/ExtractionPanel.tsx
+index ed706fa..85b1cd1 100644
+--- a/src/features/styles/components/edit/ExtractionPanel.tsx
++++ b/src/features/styles/components/edit/ExtractionPanel.tsx
+@@ -34,7 +34,7 @@ function formatDate(isoString: string): string {
+ function renderWarnings(warnings: unknown) {
+   if (Array.isArray(warnings)) {
+     return warnings.map((warning: unknown, idx: number) => (
+-      <p key={idx} className="text-xs text-amber-900/80 dark:text-amber-100/80">
++      <p key={idx} className="text-xs text-danger dark:text-danger">
+         • {typeof warning === 'string' ? warning : JSON.stringify(warning)}
+       </p>
+     ))
+@@ -51,13 +51,13 @@ export function ExtractionPanel({ extractedAt, extractionWarnings }: ExtractionP
+       description="This data was extracted when the style was created and cannot be modified."
+       background="muted"
+       rightAction={
+-        <Badge variant="outline" className="border-amber-300/60 text-amber-700 dark:border-amber-700/60 dark:text-amber-300 text-xs">
++        <Badge variant="outline" className="border-danger text-danger dark:border-primary/60 dark:text-danger text-xs">
+           Read-only
+         </Badge>
+       }
+       icon={
+-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
+-          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
++        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-field-warn dark:bg-primary/20">
++          <AlertTriangle className="h-4 w-4 text-danger dark:text-danger" />
+         </div>
+       }
+     >
+@@ -73,7 +73,7 @@ export function ExtractionPanel({ extractedAt, extractionWarnings }: ExtractionP
+       {/* Extraction warnings if any */}
+       {hasWarnings && (
+         <div className="space-y-2 mb-4">
+-          <div className="flex items-center gap-2 text-xs font-medium text-amber-800 dark:text-amber-200">
++          <div className="flex items-center gap-2 text-xs font-medium text-danger dark:text-danger">
+             <AlertTriangle className="h-4 w-4" />
+             Extraction Warnings
+           </div>
+@@ -84,8 +84,8 @@ export function ExtractionPanel({ extractedAt, extractionWarnings }: ExtractionP
+       )}
+ 
+       {/* Important notice */}
+-      <div className="pt-3 mt-2 border-t border-amber-200/50 dark:border-amber-800/50">
+-        <div className="flex items-start gap-2 text-xs text-amber-900/90 dark:text-amber-100/90">
++      <div className="pt-3 mt-2 border-t border-danger/50 dark:border-danger/50">
++        <div className="flex items-start gap-2 text-xs text-danger">
+           <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+           <p>
+             <span className="font-semibold">Note:</span> AI extraction is only available when creating a new style.
+diff --git a/src/features/styles/components/review/ReviewImageSection.tsx b/src/features/styles/components/review/ReviewImageSection.tsx
+index 2551a65..9b6ebe3 100644
+--- a/src/features/styles/components/review/ReviewImageSection.tsx
++++ b/src/features/styles/components/review/ReviewImageSection.tsx
+@@ -21,7 +21,7 @@ export function HeroImage({
+   isInfoImage: boolean
+ }) {
+   return (
+-    <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-lg border-2 border-orange-500/20 bg-muted">
++    <div className="relative aspect-[4/3] w-full rounded-2xl overflow-hidden shadow-lg border-2 border-primary/20 bg-muted">
+       <img
+         src={image.uri}
+         alt="Style image"
+@@ -29,12 +29,12 @@ export function HeroImage({
+       />
+       <div className="absolute top-3 right-3 flex gap-2">
+         {isInfoImage && (
+-          <Badge className="gap-1 bg-orange-500 text-white text-xs">
++          <Badge className="gap-1 bg-primary text-primary-foreground text-xs">
+             <Sparkles className="h-3 w-3" />
+             Info
+           </Badge>
+         )}
+-        <Badge className="bg-blue-600 text-white text-xs">
++        <Badge className="bg-primary text-primary-foreground text-xs">
+           Primary
+         </Badge>
+       </div>
+@@ -67,7 +67,7 @@ export function ThumbnailStrip({
+           aria-pressed={img.id === selectedImageId}
+           className={cn(
+             "flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 bg-muted transition-all",
+-            img.id === selectedImageId ? "border-orange-500 ring-2 ring-orange-500/20" : "border-border hover:border-orange-500/50"
++            img.id === selectedImageId ? "border-primary ring-2 ring-primary/20" : "border-border hover:border-primary/50"
+           )}
+         >
+           <img
+diff --git a/src/features/styles/screens/ProcessingScreen.tsx b/src/features/styles/screens/ProcessingScreen.tsx
+index 531be4b..7505826 100644
+--- a/src/features/styles/screens/ProcessingScreen.tsx
++++ b/src/features/styles/screens/ProcessingScreen.tsx
+@@ -57,7 +57,7 @@ export function StyleProcessingScreen({
+       className
+     )}>
+       {/* Large hero image - primary focus */}
+-      <div className="relative w-full aspect-[4/3] max-w-sm rounded-2xl overflow-hidden shadow-2xl border-2 border-orange-500/20 bg-muted">
++      <div className="relative w-full aspect-[4/3] max-w-sm rounded-2xl overflow-hidden shadow-2xl border-2 border-primary/20 bg-muted">
+         {infoImage?.uri ? (
+           <img
+             src={infoImage.uri}
+@@ -74,8 +74,8 @@ export function StyleProcessingScreen({
+         {isProcessing && (
+           <div className="absolute inset-0 flex items-center justify-center bg-black/30 backdrop-blur-[2px]">
+             <div className="flex flex-col items-center gap-3">
+-              <div className="w-16 h-16 rounded-full bg-orange-500/90 flex items-center justify-center shadow-lg shadow-orange-500/30">
+-                <Sparkles className="h-8 w-8 text-white animate-spin-slow" />
++              <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center shadow-lg shadow-primary/30">
++                <Sparkles className="h-8 w-8 text-primary-foreground animate-spin-slow" />
+               </div>
+               <div className="flex items-center gap-2 bg-black/50 backdrop-blur-sm px-4 py-2 rounded-full">
+                 <Loader2 className="h-4 w-4 text-white animate-spin" />
+@@ -99,9 +99,9 @@ export function StyleProcessingScreen({
+             <p className="text-xs text-muted-foreground/70">
+               You'll review and edit before saving
+             </p>
+-            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-full">
+-              <Sparkles className="h-3 w-3 text-amber-600 dark:text-amber-500" />
+-              <span className="text-xs text-amber-700 dark:text-amber-400 font-medium">
++            <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-field-warn border border-danger rounded-full">
++              <Sparkles className="h-3 w-3 text-danger" />
++              <span className="text-xs text-danger font-medium">
+                 Extraction happens once
+               </span>
+             </div>
+diff --git a/src/features/styles/screens/StyleEditScreen.tsx b/src/features/styles/screens/StyleEditScreen.tsx
+index 1355c6b..6b87305 100644
+--- a/src/features/styles/screens/StyleEditScreen.tsx
++++ b/src/features/styles/screens/StyleEditScreen.tsx
+@@ -284,7 +284,7 @@ export function StyleEditScreen({
+     return (
+       <AppFrame className={cn('flex items-center justify-center', className)}>
+         <div className="flex flex-col items-center gap-3">
+-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
++          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+           <p className="text-muted-foreground">Loading style data...</p>
+         </div>
+       </AppFrame>
+@@ -413,7 +413,7 @@ export function StyleEditScreen({
+         confirmText="Discard Changes"
+         cancelText="Keep Editing"
+         variant="destructive"
+-        icon={<AlertTriangle className="h-6 w-6 text-amber-500" />}
++        icon={<AlertTriangle className="h-6 w-6 text-danger" />}
+       />
+     </AppFrame>
+   )
+diff --git a/src/features/styles/screens/StyleListScreen.tsx b/src/features/styles/screens/StyleListScreen.tsx
+index ca822e7..8a71074 100644
+--- a/src/features/styles/screens/StyleListScreen.tsx
++++ b/src/features/styles/screens/StyleListScreen.tsx
+@@ -237,7 +237,7 @@ export function StyleListScreen({
+               size="sm"
+               onClick={onVendorInfo}
+               type="button"
+-              className="text-muted-foreground hover:text-primary -ml-2"
++              className="text-muted-foreground hover:text-foreground -ml-2"
+             >
+               <Building2 className="h-4 w-4 mr-1.5" />
+               Vendor info
+diff --git a/src/features/styles/screens/StyleSuccessScreen.tsx b/src/features/styles/screens/StyleSuccessScreen.tsx
+index 6b0a0ba..27ba7ad 100644
+--- a/src/features/styles/screens/StyleSuccessScreen.tsx
++++ b/src/features/styles/screens/StyleSuccessScreen.tsx
+@@ -55,11 +55,11 @@ export function StyleSuccessScreen({
+     )}>
+       {/* Success icon with animation */}
+       <div className="mb-6 relative">
+-        <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-950/30 flex items-center justify-center">
+-          <CheckCircle className="h-14 w-14 text-green-600 dark:text-green-400" />
++        <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
++          <CheckCircle className="h-14 w-14 text-primary" />
+         </div>
+-        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center shadow-lg">
+-          <Sparkles className="h-4 w-4 text-white" />
++        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
++          <Sparkles className="h-4 w-4 text-primary-foreground" />
+         </div>
+       </div>
+ 
+diff --git a/src/features/styles/screens/VariantEditScreen.tsx b/src/features/styles/screens/VariantEditScreen.tsx
+index 2352156..f4ca5ef 100644
+--- a/src/features/styles/screens/VariantEditScreen.tsx
++++ b/src/features/styles/screens/VariantEditScreen.tsx
+@@ -247,7 +247,7 @@ export function VariantEditScreen({
+     return (
+       <AppFrame className={cn('flex items-center justify-center', className)}>
+         <div className="flex flex-col items-center gap-3">
+-          <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
++          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+           <p className="text-muted-foreground">Loading variant data...</p>
+         </div>
+       </AppFrame>
+@@ -518,7 +518,7 @@ export function VariantEditScreen({
+         confirmText="Discard Changes"
+         cancelText="Keep Editing"
+         variant="destructive"
+-        icon={<AlertTriangle className="h-6 w-6 text-amber-500" />}
++        icon={<AlertTriangle className="h-6 w-6 text-danger" />}
+       />
+     </AppFrame>
+   )
+diff --git a/src/features/vendors/components/ExtractionInfoPanel.tsx b/src/features/vendors/components/ExtractionInfoPanel.tsx
+index 5051e9d..e904c3b 100644
+--- a/src/features/vendors/components/ExtractionInfoPanel.tsx
++++ b/src/features/vendors/components/ExtractionInfoPanel.tsx
+@@ -53,27 +53,27 @@ export function ExtractionInfoPanel({
+       description="This data was extracted when the vendor was created and cannot be modified."
+       background="muted"
+       rightAction={
+-        <Badge variant="outline" className="border-amber-300/60 text-amber-700 dark:border-amber-700/60 dark:text-amber-300 text-xs">
++        <Badge variant="outline" className="border-danger text-danger dark:border-primary/60 dark:text-danger text-xs">
+           Read-only
+         </Badge>
+       }
+       icon={
+-        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/50">
+-          <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-300" />
++        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-field-warn dark:bg-primary/20">
++          <AlertTriangle className="h-4 w-4 text-danger dark:text-danger" />
+         </div>
+       }
+       className={className}
+     >
+       {/* Source image preview if available */}
+       {sourceImage && (
+-        <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-black/20 rounded-lg border border-amber-200/40 dark:border-amber-800/40 mb-4">
++        <div className="flex items-center gap-3 p-3 bg-white/60 dark:bg-black/20 rounded-lg border border-danger/40 dark:border-danger/40 mb-4">
+           <div className="relative flex-shrink-0">
+             <img
+               src={sourceImage.uri}
+               alt="Source extraction image"
+-              className="w-20 h-20 object-cover rounded-md border border-amber-200/60 dark:border-amber-800/60"
++              className="w-20 h-20 object-cover rounded-md border border-danger/60 dark:border-danger/60"
+             />
+-            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 dark:bg-amber-600">
++            <div className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary dark:bg-primary">
+               <Check className="h-3 w-3 text-white" />
+             </div>
+           </div>
+@@ -98,13 +98,13 @@ export function ExtractionInfoPanel({
+       {/* Extraction warnings if any */}
+       {hasWarnings && (
+         <div className="space-y-2 mb-4">
+-          <div className="flex items-center gap-2 text-xs font-medium text-amber-800 dark:text-amber-200">
++          <div className="flex items-center gap-2 text-xs font-medium text-danger dark:text-danger">
+             <AlertTriangle className="h-4 w-4" />
+             Extraction Warnings
+           </div>
+           <div className="space-y-1 pl-6">
+             {extractionMeta.warnings!.map((warning, idx) => (
+-              <p key={idx} className="text-xs text-amber-900/80 dark:text-amber-100/80">
++              <p key={idx} className="text-xs text-danger dark:text-danger">
+                 • {warning}
+               </p>
+             ))}
+diff --git a/src/features/vendors/components/VendorCard.tsx b/src/features/vendors/components/VendorCard.tsx
+index c0dc027..69650d1 100644
+--- a/src/features/vendors/components/VendorCard.tsx
++++ b/src/features/vendors/components/VendorCard.tsx
+@@ -81,7 +81,7 @@ export function VendorCard({
+       className={cn(
+         'w-full text-left',
+         'bg-card hover:bg-muted/30',
+-        'border border-border hover:border-orange-500/30',
++        'border border-border hover:border-primary/30',
+         'rounded-xl p-4 sm:p-5',
+         'transition-all duration-300',
+         'hover:shadow-md overflow-hidden',
+@@ -116,7 +116,7 @@ export function VendorCard({
+           {/* Header row */}
+           <div className="flex items-start justify-between gap-2 mb-2">
+             {/* Company name */}
+-            <h3 className="text-base sm:text-lg font-semibold text-foreground truncate group-hover:text-orange-500 transition-colors">
++            <h3 className="text-base sm:text-lg font-semibold text-foreground truncate group-hover:text-primary transition-colors">
+               {vendor.companyName}
+             </h3>
+ 
+@@ -195,7 +195,7 @@ export function VendorCard({
+             {vendor.extractionMeta?.warnings && vendor.extractionMeta.warnings.length > 0 && (
+               <>
+                 <span>•</span>
+-                <span className="text-amber-600 dark:text-amber-500">Review needed</span>
++                <span className="text-danger dark:text-danger">Review needed</span>
+               </>
+             )}
+           </div>
+diff --git a/src/features/vendors/components/VendorImagesSection.tsx b/src/features/vendors/components/VendorImagesSection.tsx
+index f270219..0f53e5f 100644
+--- a/src/features/vendors/components/VendorImagesSection.tsx
++++ b/src/features/vendors/components/VendorImagesSection.tsx
+@@ -107,18 +107,18 @@ export function VendorImagesSection({
+               className={cn(
+                 'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
+                 extractionEnabled
+-                  ? 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-400'
++                  ? 'border-primary/40 bg-primary/10 text-primary dark:border-primary dark:bg-primary/30 dark:text-primary'
+                   : 'border-border bg-background text-muted-foreground hover:bg-muted'
+               )}
+             >
+-              <Sparkles className={cn('h-4 w-4', extractionEnabled && 'text-orange-500')} />
++              <Sparkles className={cn('h-4 w-4', extractionEnabled && 'text-primary')} />
+               <span>{extractionEnabled ? 'AI Extraction On' : 'AI Extraction Off'}</span>
+             </button>
+           </div>
+ 
+           {extractionEnabled && (
+             <p className="text-xs text-muted-foreground flex items-center gap-1">
+-              <Sparkles className="h-3 w-3 text-orange-500" />
++              <Sparkles className="h-3 w-3 text-primary" />
+               Existing vendor values will be replaced by extracted data (booth number preserved if missing)
+             </p>
+           )}
+@@ -147,11 +147,11 @@ export function VendorImagesSection({
+               className={cn(
+                 'flex items-center gap-2 px-3 py-2 rounded-lg border text-sm transition-colors',
+                 extractionEnabled
+-                  ? 'border-orange-300 bg-orange-50 text-orange-700 dark:border-orange-700 dark:bg-orange-950/30 dark:text-orange-400'
++                  ? 'border-primary/40 bg-primary/10 text-primary dark:border-primary dark:bg-primary/30 dark:text-primary'
+                   : 'border-border bg-background text-muted-foreground hover:bg-muted'
+               )}
+             >
+-              <Sparkles className={cn('h-4 w-4', extractionEnabled && 'text-orange-500')} />
++              <Sparkles className={cn('h-4 w-4', extractionEnabled && 'text-primary')} />
+               <span>AI Extraction</span>
+             </button>
+             <Button
+@@ -166,7 +166,7 @@ export function VendorImagesSection({
+           </div>
+           {extractionEnabled && (
+             <p className="text-xs text-muted-foreground flex items-center gap-1">
+-              <Sparkles className="h-3 w-3 text-orange-500" />
++              <Sparkles className="h-3 w-3 text-primary" />
+               When you replace the image, AI extraction will run on the new image
+             </p>
+           )}
+diff --git a/src/features/vendors/components/review/VendorReviewImageSection.tsx b/src/features/vendors/components/review/VendorReviewImageSection.tsx
+index d793dba..e6233fd 100644
+--- a/src/features/vendors/components/review/VendorReviewImageSection.tsx
++++ b/src/features/vendors/components/review/VendorReviewImageSection.tsx
+@@ -22,7 +22,7 @@ export function SourceImagePreview({
+       description="This image was used for extraction"
+     >
+       <div className="flex gap-4 items-start">
+-        <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 border-orange-500/30 bg-muted">
++        <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden border-2 border-primary/30 bg-muted">
+           <img
+             src={infoImage.uri}
+             alt="Source Info image"
+diff --git a/src/features/vendors/screens/ProcessingScreen.tsx b/src/features/vendors/screens/ProcessingScreen.tsx
+index 396ca69..40da5f2 100644
+--- a/src/features/vendors/screens/ProcessingScreen.tsx
++++ b/src/features/vendors/screens/ProcessingScreen.tsx
+@@ -4,7 +4,7 @@
+  * Displays the AI extraction processing state for vendor creation.
+  *
+  * DESIGN ALIGNED:
+- * - Premium dark surfaces with warm orange accent
++ * - Paper/Ink surfaces with Stall accent
+  * - Clear visual hierarchy with progress indication
+  * - Modern rounded surfaces
+  * - Mobile-first touch-friendly sizing
+@@ -60,7 +60,7 @@ export function ProcessingScreen({
+     )}>
+       {/* Info image preview */}
+       <div className="mb-8 relative">
+-        <div className="w-48 h-48 sm:w-64 sm:h-64 rounded-2xl overflow-hidden shadow-2xl border-4 border-orange-500/30 bg-muted">
++        <div className="w-48 h-48 sm:w-64 sm:h-64 rounded-2xl overflow-hidden shadow-2xl border-4 border-primary/30 bg-muted">
+           {infoImage?.uri ? (
+             <img
+               src={infoImage.uri}
+@@ -77,8 +77,8 @@ export function ProcessingScreen({
+         {/* Processing indicator overlay */}
+         {isProcessing && (
+           <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-sm rounded-2xl">
+-            <div className="w-20 h-20 rounded-full bg-orange-500 flex items-center justify-center shadow-lg shadow-orange-500/40 animate-pulse">
+-              <Sparkles className="h-10 w-10 text-white animate-spin" />
++            <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/40 animate-pulse">
++              <Sparkles className="h-10 w-10 text-primary-foreground animate-spin" />
+             </div>
+           </div>
+         )}
+@@ -90,7 +90,7 @@ export function ProcessingScreen({
+         {isProcessing && (
+           <>
+             <div className="flex items-center justify-center gap-2">
+-              <Loader2 className="h-5 w-5 text-orange-500 animate-spin" />
++              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+               <h2 className="text-xl font-semibold text-foreground">
+                 Extracting Information
+               </h2>
+@@ -98,9 +98,9 @@ export function ProcessingScreen({
+             <p className="text-muted-foreground">
+               Analyzing your vendor image to extract company details...
+             </p>
+-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
+-              <Sparkles className="h-4 w-4 text-orange-500" />
+-              <span className="text-sm text-blue-900 dark:text-blue-100 font-medium">
++            <div className="inline-flex items-center gap-2 px-4 py-2 bg-field-warn border border-danger rounded-lg">
++              <Sparkles className="h-4 w-4 text-primary" />
++              <span className="text-sm text-danger font-medium">
+                 Extraction happens once during create flow
+               </span>
+             </div>
+diff --git a/src/features/vendors/screens/VendorCaptureFlow.tsx b/src/features/vendors/screens/VendorCaptureFlow.tsx
+index a411116..5d52464 100644
+--- a/src/features/vendors/screens/VendorCaptureFlow.tsx
++++ b/src/features/vendors/screens/VendorCaptureFlow.tsx
+@@ -290,7 +290,7 @@ export function VendorCaptureFlow({
+       {state.currentScreen !== 'success' && state.currentScreen !== 'error' && (
+         <div className="h-1 bg-muted">
+           <div
+-            className="h-full bg-orange-500 transition-all duration-300"
++            className="h-full bg-primary transition-all duration-300"
+             style={{ width: `${(currentStep / totalSteps) * 100}%` }}
+           />
+         </div>
+@@ -311,7 +311,7 @@ export function VendorCaptureFlow({
+         confirmText="Discard"
+         cancelText="Keep Editing"
+         variant="destructive"
+-        icon={<AlertTriangle className="h-6 w-6 text-amber-500" />}
++        icon={<AlertTriangle className="h-6 w-6 text-danger" />}
+       />
+ 
+       {/* Duplicate vendor warning dialog */}
+@@ -332,7 +332,7 @@ export function VendorCaptureFlow({
+         confirmText="Continue Anyway"
+         cancelText="Cancel"
+         variant="accent"
+-        icon={<AlertTriangle className="h-6 w-6 text-amber-500" />}
++        icon={<AlertTriangle className="h-6 w-6 text-danger" />}
+         isConfirming={state.isSaving}
+       />
+ 
+diff --git a/src/features/vendors/screens/VendorEditScreen.tsx b/src/features/vendors/screens/VendorEditScreen.tsx
+index 400b1c3..e602598 100644
+--- a/src/features/vendors/screens/VendorEditScreen.tsx
++++ b/src/features/vendors/screens/VendorEditScreen.tsx
+@@ -299,10 +299,10 @@ export function VendorEditScreen({
+                   {extractionResultMeta.warnings.map((w, i) => (
+                     <div
+                       key={i}
+-                      className="flex items-start gap-2 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg"
++                      className="flex items-start gap-2 p-3 bg-field-warn border border-danger rounded-lg"
+                     >
+-                      <AlertTriangle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+-                      <p className="text-sm text-amber-700">{w}</p>
++                      <AlertTriangle className="h-4 w-4 text-danger flex-shrink-0 mt-0.5" />
++                      <p className="text-sm text-danger">{w}</p>
+                     </div>
+                   ))}
+                 </div>
+@@ -515,7 +515,7 @@ export function VendorEditScreen({
+         confirmText="Discard Changes"
+         cancelText="Keep Editing"
+         variant="destructive"
+-        icon={<AlertTriangle className="h-6 w-6 text-amber-500" />}
++        icon={<AlertTriangle className="h-6 w-6 text-danger" />}
+       />
+     </AppFrame>
+   )
+diff --git a/src/features/vendors/screens/VendorListScreen.tsx b/src/features/vendors/screens/VendorListScreen.tsx
+index 50055f2..5b4ce8b 100644
+--- a/src/features/vendors/screens/VendorListScreen.tsx
++++ b/src/features/vendors/screens/VendorListScreen.tsx
+@@ -203,7 +203,7 @@ export function VendorListScreen({
+ 
+         {/* ── Status tabs (underline indicator) ── */}
+         {!isEmpty && (
+-          <div className="border-b border-gray-200 bg-white">
++          <div className="border-b border-border bg-background">
+             <Tabs value={statusFilter} onValueChange={(v) => startTransition(() => onStatusFilterChange?.(v as TabValue))}>
+               <TabsList
+                 className={cn(
+@@ -226,12 +226,12 @@ export function VendorListScreen({
+                         'px-3 pb-3 pt-2',
+                         'text-sm font-medium',
+                         // Colour states
+-                        'text-gray-400',
+-                        'data-[state=active]:text-orange-600',
++                        'text-muted-foreground',
++                        'data-[state=active]:text-primary',
+                         // Underline indicator on active
+                         'after:absolute after:bottom-0 after:left-3 after:right-3',
+                         'after:h-0.5 after:rounded-full',
+-                        'after:bg-orange-500 after:scale-x-0',
++                        'after:bg-primary after:scale-x-0',
+                         'after:transition-transform after:duration-200 after:ease-out',
+                         'data-[state=active]:after:scale-x-100',
+                       )}
+@@ -246,9 +246,9 @@ export function VendorListScreen({
+                             'rounded-full',
+                             'text-[11px] font-semibold leading-none',
+                             // Active state: brand-tinted pill
+-                            'data-[state=active]:bg-orange-100 data-[state=active]:text-orange-700',
++                            'data-[state=active]:bg-primary/10 data-[state=active]:text-primary',
+                             // Inactive state: neutral pill
+-                            'data-[state=inactive]:bg-gray-100 data-[state=inactive]:text-gray-500',
++                            'data-[state=inactive]:bg-muted data-[state=inactive]:text-muted-foreground',
+                           )}
+                         >
+                           {count}
+@@ -273,7 +273,7 @@ export function VendorListScreen({
+                   value={searchQuery}
+                   onChange={(e) => onSearchChange(e.target.value)}
+                   placeholder="Search vendors..."
+-                  className="bg-muted/50 pl-10 h-11 border-none rounded-xl focus-visible:ring-orange-500/30"
++                  className="bg-muted/50 pl-10 h-11 border-none rounded-xl focus-visible:ring-ring/30"
+                 />
+               </div>
+             )}
+@@ -449,7 +449,7 @@ function SortableVendorItem({ vendor, onEditVendor, onVendorClick }: SortableVen
+       style={style}
+       {...attributes}
+       {...listeners}
+-      className="min-w-0 touch-none rounded-xl cursor-grab outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:cursor-grabbing"
++      className="min-w-0 touch-none rounded-xl cursor-grab outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+     >
+       <SwipeActions
+         key={vendor.id}
+diff --git a/src/features/vendors/screens/VendorSuccessScreen.tsx b/src/features/vendors/screens/VendorSuccessScreen.tsx
+index 7719655..3ea2673 100644
+--- a/src/features/vendors/screens/VendorSuccessScreen.tsx
++++ b/src/features/vendors/screens/VendorSuccessScreen.tsx
+@@ -55,11 +55,11 @@ export function VendorSuccessScreen({
+     )}>
+       {/* Success icon with animation */}
+       <div className="mb-6 relative">
+-        <div className="w-24 h-24 rounded-full bg-green-100 dark:bg-green-950/30 flex items-center justify-center">
+-          <CheckCircle className="h-14 w-14 text-green-600 dark:text-green-400" />
++        <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center">
++          <CheckCircle className="h-14 w-14 text-primary" />
+         </div>
+-        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center shadow-lg">
+-          <Sparkles className="h-4 w-4 text-white" />
++        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-primary flex items-center justify-center shadow-lg">
++          <Sparkles className="h-4 w-4 text-primary-foreground" />
+         </div>
+       </div>
+ 
+diff --git a/src/styles/globals.css b/src/styles/globals.css
+index 258327a..b63cb15 100644
+--- a/src/styles/globals.css
++++ b/src/styles/globals.css
+@@ -88,8 +88,9 @@
+     --muted: 202.5 14.8% 89.4%; /* Mist */
+     --muted-foreground: 44 7.5% 39%; /* Stall Grey #6B675C */
+ 
+-    /* Accent: Stall Orange with Ink foreground */
+-    --accent: 17.5 90.8% 46.7%;
++    /* Accent: subtle Stall hover tint with Ink foreground (shadcn hover
++       semantics — solid Stall lives ONLY in --primary/--ring) */
++    --accent: 21 66% 92%; /* Stall at ~10% over Paper */
+     --accent-foreground: 51.4 18.9% 7.3%;
+ 
+     /* Destructive for error states */
