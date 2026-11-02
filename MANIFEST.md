@@ -1,11 +1,11 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `5cd2929ac06ee37c932b61fa021a6b31fcba8e03`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `63474f60717e1a642a105676d5276fc69e91424d`.
 
 - Branch: `staging`
-- Date: 2026-11-02T04:07:57+02:00
+- Date: 2026-11-02T04:23:44+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `a4eede04508c37c0a8d3107868fb37fdaf9a9097`
+- Previous source commit: `5cd2929ac06ee37c932b61fa021a6b31fcba8e03`
 - Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
@@ -290,6 +290,9 @@ docs/plans/DESIGN-02A-brand-assets.md
 docs/plans/DESIGN-02B-social-sting.md
 docs/plans/DESIGN-02C1-tokens-reskin.md
 docs/plans/DESIGN-02C2-screens-port.md
+docs/plans/DESIGN-02C2a-chrome-capture.md
+docs/plans/DESIGN-02C2b-catalogue-vendor-detail.md
+docs/plans/DESIGN-02C2c-video-review.md
 docs/plans/FR-CAT-01-item-detail.md
 docs/plans/FR-CAT-01-unified-styles.md
 docs/plans/FR-MOD-01-provider-interface.md
