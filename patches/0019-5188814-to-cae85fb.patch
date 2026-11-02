@@ -1,0 +1,584 @@
+diff --git a/package.json b/package.json
+index c865c5f..d0fdab0 100644
+--- a/package.json
++++ b/package.json
+@@ -66,7 +66,7 @@
+   "devDependencies": {
+     "@capacitor/cli": "^8.2.0",
+     "@eslint/js": "^9.25.0",
+-    "@playwright/test": "^1.59.1",
++    "@playwright/test": "^1.64.1",
+     "@tailwindcss/postcss": "^4.0.0",
+     "@testing-library/dom": "^10.4.1",
+     "@testing-library/jest-dom": "^6.9.1",
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index 0766c31..a81f4c3 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -112,8 +112,8 @@ importers:
+         specifier: ^9.25.0
+         version: 9.39.4
+       '@playwright/test':
+-        specifier: ^1.59.1
+-        version: 1.59.1
++        specifier: ^1.64.1
++        version: 1.64.1
+       '@tailwindcss/postcss':
+         specifier: ^4.0.0
+         version: 4.2.4
+@@ -751,9 +751,9 @@ packages:
+   '@oxc-project/types@0.126.0':
+     resolution: {integrity: sha512-oGfVtjAgwQVVpfBrbtk4e1XDyWHRFta6BS3GWVzrF8xYBT2VGQAk39yJS/wFSMrZqoiCU4oghT3Ch0HaHGIHcQ==}
+ 
+-  '@playwright/test@1.59.1':
+-    resolution: {integrity: sha512-PG6q63nQg5c9rIi4/Z5lR5IVF7yU5MqmKaPOe0HSc0O2cX1fPi96sUQu5j7eo4gKCkB2AnNGoWt7y4/Xx3Kcqg==}
+-    engines: {node: '>=18'}
++  '@playwright/test@1.64.1':
++    resolution: {integrity: sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==}
++    engines: {node: '>=20'}
+     hasBin: true
+ 
+   '@polka/url@1.0.0-next.29':
+@@ -2132,11 +2132,6 @@ packages:
+     resolution: {integrity: sha512-hcg3ZmepS30/7BSFqRvoo3DOMQu7IjqxO5nCDt+zM9XWjb33Wg7ziNT+Qvqbuc3+gWpzO02JubVyk2G4Zvo1OQ==}
+     engines: {node: '>=10'}
+ 
+-  fsevents@2.3.2:
+-    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+-    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+-    os: [darwin]
+-
+   fsevents@2.3.3:
+     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
+     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+@@ -3033,14 +3028,14 @@ packages:
+     resolution: {integrity: sha512-wQ0b/W4Fr01qtpHlqSqspcj3EhBvimsdh0KlHhH8HRZnMsEa0ea2fTULOXOS9ccQr3om+GcGRk4e+isrZWV8qQ==}
+     engines: {node: '>=16.20.0'}
+ 
+-  playwright-core@1.59.1:
+-    resolution: {integrity: sha512-HBV/RJg81z5BiiZ9yPzIiClYV/QMsDCKUyogwH9p3MCP6IYjUFu/MActgYAvK0oWyV9NlwM3GLBjADyWgydVyg==}
+-    engines: {node: '>=18'}
++  playwright-core@1.64.1:
++    resolution: {integrity: sha512-BC4s8y6SEVA6Q1rSxZTto8hI1KUI3xXlHGZgvGqP4IqPdI/a6FX9H29IDNz7vKo9l21b6LfYosScPL6M3xxyDQ==}
++    engines: {node: '>=20'}
+     hasBin: true
+ 
+-  playwright@1.59.1:
+-    resolution: {integrity: sha512-C8oWjPR3F81yljW9o5OxcWzfh6avkVwDD2VYdwIGqTkl+OGFISgypqzfu7dOe4QNLL2aqcWBmI3PMtLIK233lw==}
+-    engines: {node: '>=18'}
++  playwright@1.64.1:
++    resolution: {integrity: sha512-HCrVhHr5QQuwYoswEUGTb7gGp522yflbv/ST8nF4sFWGuLjQCt17Q/EubpGGSNKYn1tsTCPZxqHhHCfVURu7UA==}
++    engines: {node: '>=20'}
+     hasBin: true
+ 
+   plist@3.1.0:
+@@ -4557,9 +4552,9 @@ snapshots:
+ 
+   '@oxc-project/types@0.126.0': {}
+ 
+-  '@playwright/test@1.59.1':
++  '@playwright/test@1.64.1':
+     dependencies:
+-      playwright: 1.59.1
++      playwright: 1.64.1
+ 
+   '@polka/url@1.0.0-next.29': {}
+ 
+@@ -5878,9 +5873,6 @@ snapshots:
+       jsonfile: 6.2.0
+       universalify: 2.0.1
+ 
+-  fsevents@2.3.2:
+-    optional: true
+-
+   fsevents@2.3.3:
+     optional: true
+ 
+@@ -6919,13 +6911,11 @@ snapshots:
+ 
+   pkce-challenge@5.0.1: {}
+ 
+-  playwright-core@1.59.1: {}
++  playwright-core@1.64.1: {}
+ 
+-  playwright@1.59.1:
++  playwright@1.64.1:
+     dependencies:
+-      playwright-core: 1.59.1
+-    optionalDependencies:
+-      fsevents: 2.3.2
++      playwright-core: 1.64.1
+ 
+   plist@3.1.0:
+     dependencies:
+diff --git a/src/app/styleRouteWrappers.tsx b/src/app/styleRouteWrappers.tsx
+index bf5435c..43fd967 100644
+--- a/src/app/styleRouteWrappers.tsx
++++ b/src/app/styleRouteWrappers.tsx
+@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
+ import { useParams, useNavigate } from 'react-router-dom'
+ import { useEventRole } from '@/features/auth'
+ import { useStylesQuery, useDeleteStyle, useToggleShortlist } from '@/features/styles/hooks'
++import { useCatalogueItemsQuery } from '@/features/catalogue/hooks/useCatalogueItemsQuery'
+ import { useVendorsQuery } from '@/features/vendors/hooks/useVendorQueries'
+ import { useRealtimeRefresh } from '@/lib/realtime'
+ import { StyleCaptureFlow, StyleListScreen, StyleDetailScreen, StyleEditScreen, VariantEditScreen, type StyleFilters } from '@/features/styles'
+@@ -23,19 +24,32 @@ export function StyleListFromRouteWithProvider() {
+   const [filters, setFilters] = useState<StyleFilters>({})
+ 
+   useRealtimeRefresh('fabric_styles', [['styles', vendorId]], { column: 'vendor_id', value: vendorId })
++  // Catalogue items (garments, video items) share the list; an items
++  // failure degrades to fabric-only inside the hook, never blocks.
++  const { data: catalogueItems = [], refetch: refetchCatalogueItems } = useCatalogueItemsQuery(vendorId)
++  useRealtimeRefresh('catalogue_items', [['catalogue-items', vendorId]], { column: 'vendor_id', value: vendorId })
+ 
+   const vendor = vendors.find((v: VendorRecord) => v.id === vendorId)
+   const vendorName = vendor?.companyName || ''
+ 
+-  const sortedStyles = [...styles].sort((a, b) =>
++  const catalogueRecords = useMemo(
++    () => catalogueItems.map((item) => item.record),
++    [catalogueItems],
++  )
++  const needsReviewIds = useMemo(
++    () => new Set(catalogueItems.filter((item) => item.needsReview).map((item) => item.record.id)),
++    [catalogueItems],
++  )
++
++  const sortedStyles = [...styles, ...catalogueRecords].sort((a, b) =>
+     new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+   )
+ 
+   const filterOptions = useMemo(() => ({
+-    categories: [...new Set(styles.map((s: any) => s.category).filter(Boolean))] as string[],
+-    seasons: [...new Set(styles.map((s: any) => s.season).filter(Boolean))] as string[],
+-    statuses: [...new Set(styles.map((s: any) => s.status).filter(Boolean))] as string[],
+-  }), [styles])
++    categories: [...new Set(sortedStyles.map((s: any) => s.category).filter(Boolean))] as string[],
++    seasons: [...new Set(sortedStyles.map((s: any) => s.season).filter(Boolean))] as string[],
++    statuses: [...new Set(sortedStyles.map((s: any) => s.status).filter(Boolean))] as string[],
++  }), [sortedStyles])
+ 
+   const toggleShortlist = useToggleShortlist(vendorId)
+ 
+@@ -73,15 +87,24 @@ export function StyleListFromRouteWithProvider() {
+       onAddStyle={canEdit ? () => navigate(`/events/${eventId}/vendors/${vendorId}/items/new/capture`) : undefined}
+       // FAB keeps the fast legacy fabric path (FR-SCH-05b).
+       onFabPress={canEdit ? () => navigate(`/events/${eventId}/vendors/${vendorId}/styles/new/capture`) : undefined}
+-      onStyleClick={(style) => navigate(`/events/${eventId}/vendors/${vendorId}/styles/${style.id}`)}
++      // Catalogue rows (ci- prefix) have no detail/shortlist path yet —
++      // guard fabric-only actions so they no-op instead of 404ing.
++      onStyleClick={(style) => {
++        if (style.id.startsWith('ci-')) {return}
++        navigate(`/events/${eventId}/vendors/${vendorId}/styles/${style.id}`)
++      }}
+       onVendorInfo={() => navigate(`/events/${eventId}/vendors/${vendorId}`)}
+       searchQuery={searchQuery}
+       onSearchChange={setSearchQuery}
+       filters={filters}
+       onFiltersChange={setFilters}
+       filterOptions={filterOptions}
+-      onToggleShortlist={(styleId, value) => toggleShortlist.mutate({ styleId, value })}
+-      onRefresh={async () => { await refetchStyles() }}
++      onToggleShortlist={(styleId, value) => {
++        if (styleId.startsWith('ci-')) {return}
++        toggleShortlist.mutate({ styleId, value })
++      }}
++      needsReviewIds={needsReviewIds}
++      onRefresh={async () => { await refetchStyles(); await refetchCatalogueItems() }}
+     />
+   )
+ }
+diff --git a/src/features/styles/components/StyleCard.tsx b/src/features/styles/components/StyleCard.tsx
+index 71e3bfb..e823f6e 100644
+--- a/src/features/styles/components/StyleCard.tsx
++++ b/src/features/styles/components/StyleCard.tsx
+@@ -30,6 +30,11 @@ export interface StyleCardProps {
+   className?: string
+   /** Callback to toggle shortlist */
+   onToggleShortlist?: (styleId: string, value: boolean) => void
++  /** Whether the shortlist heart is shown. Defaults to true; catalogue
++   * (garment/video) rows pass false since shortlist is a fabric-only path. */
++  shortlistable?: boolean
++  /** Optional badge (e.g. REVIEW / AI Extracted) rendered beside the timestamp. */
++  badge?: React.ReactNode
+ }
+ 
+ /**
+@@ -98,6 +103,8 @@ export function StyleCard({
+   onClick,
+   className,
+   onToggleShortlist,
++  shortlistable = true,
++  badge,
+ }: StyleCardProps) {
+   const handleClick = useCallback(() => {
+     onClick?.(style)
+@@ -108,6 +115,17 @@ export function StyleCard({
+     onToggleShortlist?.(style.id, !style.isShortlisted)
+   }, [style.id, style.isShortlisted, onToggleShortlist])
+ 
++  const handleCardKeyDown = useCallback((e: React.KeyboardEvent) => {
++    // Ignore keys from nested interactive elements (e.g. the shortlist button).
++    if (e.target !== e.currentTarget) {
++      return
++    }
++    if (e.key === 'Enter' || e.key === ' ') {
++      e.preventDefault()
++      handleClick()
++    }
++  }, [handleClick])
++
+   // Get the primary image (source info image or first image)
+   const primaryImage = style.images.find(
+     (img) => img.id === style.sourceInfoImageId
+@@ -126,12 +144,19 @@ export function StyleCard({
+   const timeAgo = getRelativeTime(style.createdAt)
+ 
+   return (
+-    <button
++    // NOTE: intentionally an <article>, not a <button> — the card contains a
++    // nested shortlist <button>, and <button> inside <button> is invalid HTML
++    // that breaks hydration (React installHook warning on the style list).
++    <article
+       onClick={handleClick}
++      onKeyDown={handleCardKeyDown}
++      tabIndex={onClick ? 0 : undefined}
++      aria-label={style.styleName || 'Style'}
+       className={cn(
+         'group relative w-full overflow-hidden rounded-2xl shadow-sm transition-all duration-300 bg-card border border-border/50',
+-        'hover:shadow-md hover:shadow-orange-500/10 active:scale-[0.98]',
+-        onClick && 'cursor-pointer tap-target',
++        // Hover/press affordance only when the card is interactive —
++        // catalogue rows without onClick render static (no dead affordance).
++        onClick && 'cursor-pointer tap-target hover:shadow-md hover:shadow-orange-500/10 active:scale-[0.98]',
+         className
+       )}
+     >
+@@ -168,18 +193,19 @@ export function StyleCard({
+       {/* Card body - below image */}
+       <div className="p-3 text-left">
+         {/* Category badge + time pill row */}
+-        <div className="flex items-center justify-between mb-1.5">
++        <div className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1 mb-1.5">
+           {categoryBadge ? (
+             <Badge
+               variant="accent"
+-              className="text-[10px] px-2 py-0.5 font-semibold tracking-wide"
++              className="text-xs px-2 py-0.5 font-semibold tracking-wide"
+             >
+               {categoryBadge}
+             </Badge>
+           ) : <span />}
+-          <div className="flex items-center gap-2">
+-            <span className="text-[10px] text-muted-foreground">{timeAgo}</span>
+-            {onToggleShortlist && (
++          <div className="flex min-w-0 items-center justify-end gap-2">
++            <span className="text-xs text-muted-foreground whitespace-nowrap">{timeAgo}</span>
++            {badge}
++            {shortlistable && onToggleShortlist && (
+               <button
+                 type="button"
+                 onClick={handleShortlistToggle}
+@@ -225,6 +251,6 @@ export function StyleCard({
+           )
+         })()}
+       </div>
+-    </button>
++    </article>
+   )
+ }
+diff --git a/src/features/styles/screens/StyleListScreen.tsx b/src/features/styles/screens/StyleListScreen.tsx
+index 57eb7e3..81d7bb7 100644
+--- a/src/features/styles/screens/StyleListScreen.tsx
++++ b/src/features/styles/screens/StyleListScreen.tsx
+@@ -16,9 +16,10 @@
+  */
+ 
+ import { type ReactNode, useState, useMemo, useEffect } from 'react'
+-import { Package, Building2, Search, Loader2, FileSpreadsheet } from 'lucide-react'
++import { Package, Building2, Search, Loader2, FileSpreadsheet, AlertTriangle, Sparkles } from 'lucide-react'
+ import { cn } from '@/lib/utils/cn'
+ import { Button } from '@/components/ui'
++import { Badge } from '@/components/ui/badge'
+ import { StyleCard } from '../components/StyleCard'
+ import { SwipeActions, PullToRefresh } from '@/components/mobile'
+ import { BatchExportModal, useBatchExportModal } from '@/features/sharing/components/BatchExportModal'
+@@ -80,6 +81,10 @@ export interface StyleListScreenProps {
+   onLoadMore?: () => void
+   /** Callback to toggle shortlist */
+   onToggleShortlist?: (styleId: string, value: boolean) => void
++  /** Ids of catalogue (garment/video) rows needing a REVIEW badge.
++   * Catalogue rows are identified by the `ci-` id prefix; fabric rows are
++   * never in this set. */
++  needsReviewIds?: Set<string>
+   /** Pull-to-refresh callback */
+   onRefresh?: () => Promise<void>
+   /** Additional className */
+@@ -117,6 +122,7 @@ export function StyleListScreen({
+   onLoadMore,
+   onToggleShortlist,
+   onRefresh,
++  needsReviewIds,
+   className,
+ }: StyleListScreenProps) {
+   const [activeFilterConfig, setActiveFilterConfig] = useState<FilterConfig>({})
+@@ -260,9 +266,9 @@ export function StyleListScreen({
+         {isEmpty && !emptyStateContent && (
+           <EmptyState
+             icon={<Package />}
+-            heading="No styles yet"
+-            description="Capture fabric styles from this vendor to build your catalogue"
+-            action={onAddStyle ? { label: 'Add Your First Style', onPress: onAddStyle } : undefined}
++            heading="No items yet"
++            description="Capture items from this vendor to build your catalogue"
++            action={onAddStyle ? { label: 'Add Your First Item', onPress: onAddStyle } : undefined}
+           />
+         )}
+ 
+@@ -282,15 +288,33 @@ export function StyleListScreen({
+         {/* Style grid - premium cards with vertical rhythm */}
+         {!isEmpty && !isFilteredEmpty && (
+           <div className="grid gap-5">
+-            {filteredStyles.map((style) => (
++            {filteredStyles.map((style) => {
++              const isCatalogueRow = style.id.startsWith('ci-')
++              const needsReview = needsReviewIds?.has(style.id) ?? false
++              return (
+               <SwipeActions key={style.id}>
+                 <StyleCard
+                   style={style}
+-                  onClick={onStyleClick}
++                  onClick={isCatalogueRow ? undefined : onStyleClick}
+                   onToggleShortlist={onToggleShortlist}
++                  shortlistable={!isCatalogueRow}
++                  badge={isCatalogueRow ? (
++                    needsReview ? (
++                      <Badge variant="outline" className="gap-1 text-xs text-amber-700 dark:text-amber-400 border-amber-500/40 flex-shrink-0 whitespace-nowrap">
++                        <AlertTriangle className="h-3.5 w-3.5" />
++                        Review
++                      </Badge>
++                    ) : (
++                      <Badge variant="outline" className="gap-1 text-xs flex-shrink-0 whitespace-nowrap">
++                        <Sparkles className="h-3.5 w-3.5" />
++                        {style.category ? `${style.category} · AI` : 'AI Extracted'}
++                      </Badge>
++                    )
++                  ) : undefined}
+                 />
+               </SwipeActions>
+-            ))}
++              )
++            })}
+           </div>
+         )}
+ 
+diff --git a/src/features/styles/screens/__tests__/StyleListScreen.test.tsx b/src/features/styles/screens/__tests__/StyleListScreen.test.tsx
+index 50e0677..aac7b93 100644
+--- a/src/features/styles/screens/__tests__/StyleListScreen.test.tsx
++++ b/src/features/styles/screens/__tests__/StyleListScreen.test.tsx
+@@ -1,13 +1,16 @@
+ /**
+- * StyleListScreen tests (part of TEST-01)
++ * StyleListScreen tests (part of TEST-01; FR-CAT-01 unified rows)
+  *
+  * Tests that:
+  * - Renders style cards when styles provided
+- * - Renders empty state when no styles
+- * - Shows "Capture First Style" CTA in empty state
++ * - Renders empty state when no styles (FR-CAT-01 category-neutral copy)
++ * - Shows "Add Your First Item" CTA in empty state
+  * - Calls onAddStyle from CTA
+  * - Shows style count
+  * - Renders vendor name in header
++ * - Catalogue (`ci-`) rows render REVIEW / `{category} · AI` badges
++ *   (falling back to "AI Extracted" when category is missing) with no
++ *   shortlist heart and no detail navigation; fabric rows unchanged
+  */
+ 
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
+@@ -78,8 +81,9 @@ describe('StyleListScreen', () => {
+       />
+     )
+ 
+-    expect(screen.getByText('No styles yet')).toBeInTheDocument()
+-    expect(screen.getByText('Add Your First Style')).toBeInTheDocument()
++    expect(screen.getByText('No items yet')).toBeInTheDocument()
++    expect(screen.getByText('Capture items from this vendor to build your catalogue')).toBeInTheDocument()
++    expect(screen.getByText('Add Your First Item')).toBeInTheDocument()
+   })
+ 
+   it('calls onAddStyle when empty state CTA clicked', () => {
+@@ -90,7 +94,7 @@ describe('StyleListScreen', () => {
+       />
+     )
+ 
+-    fireEvent.click(screen.getByText('Add Your First Style'))
++    fireEvent.click(screen.getByText('Add Your First Item'))
+     expect(mockOnAddStyle).toHaveBeenCalledOnce()
+   })
+ 
+@@ -174,4 +178,138 @@ describe('StyleListScreen', () => {
+     expect(screen.getByTestId('custom-header')).toBeInTheDocument()
+     expect(screen.queryByText('Styles')).not.toBeInTheDocument()
+   })
++
++  it('[FR-CAT-01] catalogue rows without a category fall back to an AI Extracted badge with no shortlist heart', () => {
++    const catalogueStyle = createStyleRecord({
++      id: 'ci-item-1',
++      styleName: 'Denim Jacket',
++      composition: 'Jacket · Relaxed · Size M',
++      category: undefined,
++    })
++
++    renderWithRouter(
++      <StyleListScreen
++        styles={[catalogueStyle]}
++        onStyleClick={mockOnStyleClick}
++        onToggleShortlist={vi.fn()}
++      />
++    )
++
++    expect(screen.getByText('Denim Jacket')).toBeInTheDocument()
++    expect(screen.getByText('AI Extracted')).toBeInTheDocument()
++    expect(screen.queryByLabelText(/shortlist/i)).not.toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01] catalogue rows show a "{category} · AI" badge (Garment)', () => {
++    const catalogueStyle = createStyleRecord({
++      id: 'ci-item-1b',
++      styleName: 'Denim Jacket',
++      composition: 'Jacket · Relaxed · Size M',
++      category: 'Garment',
++    })
++
++    renderWithRouter(
++      <StyleListScreen
++        styles={[catalogueStyle]}
++        onStyleClick={mockOnStyleClick}
++        onToggleShortlist={vi.fn()}
++      />
++    )
++
++    expect(screen.getByText('Denim Jacket')).toBeInTheDocument()
++    expect(screen.getByText('Garment · AI')).toBeInTheDocument()
++    expect(screen.queryByText('AI Extracted')).not.toBeInTheDocument()
++    expect(screen.queryByLabelText(/shortlist/i)).not.toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01] catalogue rows show a "{category} · AI" badge (Video)', () => {
++    const catalogueStyle = createStyleRecord({
++      id: 'ci-item-1c',
++      styleName: 'Booth Walkthrough',
++      composition: 'Stall tour · Aisle 4',
++      category: 'Video',
++    })
++
++    renderWithRouter(
++      <StyleListScreen
++        styles={[catalogueStyle]}
++        onStyleClick={mockOnStyleClick}
++        onToggleShortlist={vi.fn()}
++      />
++    )
++
++    expect(screen.getByText('Booth Walkthrough')).toBeInTheDocument()
++    expect(screen.getByText('Video · AI')).toBeInTheDocument()
++    expect(screen.queryByText('AI Extracted')).not.toBeInTheDocument()
++    expect(screen.queryByLabelText(/shortlist/i)).not.toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01] catalogue rows in needsReviewIds render a Review badge with no heart', () => {
++    const catalogueStyle = createStyleRecord({
++      id: 'ci-item-2',
++      styleName: 'Linen Shirt',
++      category: 'Garment',
++    })
++
++    renderWithRouter(
++      <StyleListScreen
++        styles={[catalogueStyle]}
++        needsReviewIds={new Set(['ci-item-2'])}
++        onStyleClick={mockOnStyleClick}
++        onToggleShortlist={vi.fn()}
++      />
++    )
++
++    expect(screen.getByText('Review')).toBeInTheDocument()
++    // Review takes precedence over the category badge, even when set.
++    expect(screen.queryByText('Garment · AI')).not.toBeInTheDocument()
++    expect(screen.queryByText('AI Extracted')).not.toBeInTheDocument()
++    expect(screen.queryByLabelText(/shortlist/i)).not.toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01] catalogue rows do not trigger detail navigation on click', () => {
++    const catalogueStyle = createStyleRecord({
++      id: 'ci-item-3',
++      styleName: 'Wool Coat',
++    })
++
++    renderWithRouter(
++      <StyleListScreen
++        styles={[catalogueStyle]}
++        onStyleClick={mockOnStyleClick}
++        onToggleShortlist={vi.fn()}
++      />
++    )
++
++    fireEvent.click(screen.getByText('Wool Coat'))
++    expect(mockOnStyleClick).not.toHaveBeenCalled()
++  })
++
++  it('[FR-CAT-01] fabric rows keep the shortlist heart and click behaviour', () => {
++    const fabricStyle = createStyleRecord({ styleName: 'Cotton Twill' })
++    const mockOnToggleShortlist = vi.fn()
++
++    renderWithRouter(
++      <StyleListScreen
++        styles={[fabricStyle]}
++        onStyleClick={mockOnStyleClick}
++        onToggleShortlist={mockOnToggleShortlist}
++      />
++    )
++
++    // No catalogue badges on fabric rows.
++    expect(screen.queryByText('AI Extracted')).not.toBeInTheDocument()
++    expect(screen.queryByText(/· AI/)).not.toBeInTheDocument()
++    expect(screen.queryByText('Review')).not.toBeInTheDocument()
++
++    // Heart present and clickable.
++    fireEvent.click(screen.getByLabelText(/shortlist/i))
++    expect(mockOnToggleShortlist).toHaveBeenCalledWith(fabricStyle.id, true)
++
++    // Card click still navigates.
++    fireEvent.click(screen.getByText('Cotton Twill'))
++    expect(mockOnStyleClick).toHaveBeenCalledWith(
++      expect.objectContaining({ id: fabricStyle.id })
++    )
++  })
+ })
+diff --git a/src/features/vendors/screens/VendorDetailScreen.tsx b/src/features/vendors/screens/VendorDetailScreen.tsx
+index 399ba13..64437a1 100644
+--- a/src/features/vendors/screens/VendorDetailScreen.tsx
++++ b/src/features/vendors/screens/VendorDetailScreen.tsx
+@@ -28,7 +28,6 @@ import type { VendorRecord } from '@/types/vendor'
+ import { CommentThread } from '@/components/comments/CommentThread'
+ import { AssignmentSheet } from '@/features/assignments'
+ import { VendorPriceComparisonSection } from '../components/VendorPriceComparisonSection'
+-import { CatalogueItemsSection } from '@/features/catalogue/components/CatalogueItemsSection'
+ 
+ export interface VendorDetailScreenProps {
+   /** The vendor record to display */
+@@ -213,10 +212,8 @@ export function VendorDetailScreen({
+              )}
+            </div>
+ 
+-           {/* Schema-driven catalogue items (FR-SCH-05b) — garments and
+-               video-isolated items. Renders nothing when the vendor has
+-               none, so legacy pages are visually untouched. */}
+-           <CatalogueItemsSection vendorId={vendor.id} />
++           {/* Catalogue items (garments, video items) live on the unified
++               styles list (FR-CAT-01) — reached via Return to Styles. */}
+ 
+            {/* Extraction warning banner */}
+            {vendor.extractionMeta?.warnings && vendor.extractionMeta.warnings.length > 0 && (

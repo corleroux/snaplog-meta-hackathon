@@ -1,16 +1,22 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `5188814abf157fccbc9b054576fe103887102dc1`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `cae85fb6ff3bbc55fea2e882d3cff5cdedcf1207`.
 
 - Branch: `staging`
-- Date: 2026-11-02T01:21:00+02:00
+- Date: 2026-11-02T03:30:39+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `e9fd69f1987caac716e49692d783a5a810406c92`
-- Incremental patch: `_none_`
+- Previous source commit: `5188814abf157fccbc9b054576fe103887102dc1`
+- Incremental patch: `0019-5188814-to-cae85fb.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+package.json
+pnpm-lock.yaml
+src/app/styleRouteWrappers.tsx
+src/features/styles/components/StyleCard.tsx
+src/features/styles/screens/StyleListScreen.tsx
+src/features/styles/screens/__tests__/StyleListScreen.test.tsx
+src/features/vendors/screens/VendorDetailScreen.tsx
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -290,6 +296,7 @@ docs/plans/DESIGN-02A-brand-assets.md
 docs/plans/DESIGN-02B-social-sting.md
 docs/plans/DESIGN-02C1-tokens-reskin.md
 docs/plans/DESIGN-02C2-screens-port.md
+docs/plans/FR-CAT-01-unified-styles.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
 docs/plans/FR-MOD-02b-spark-open-modal.md
@@ -322,19 +329,21 @@ scripts/build-submission.sh
 scripts/run-benchmark.ts
 scripts/validate-eval-manifest.ts
 src/app/catalogueRouteWrappers.tsx
-src/features/catalogue/__tests__/CatalogueItemsSection.test.tsx
 src/features/catalogue/__tests__/SchemaReviewForm.test.tsx
 src/features/catalogue/__tests__/catalogueRegistry.test.ts
 src/features/catalogue/__tests__/extractionWarnings.test.ts
+src/features/catalogue/__tests__/toStyleRecord.test.ts
 src/features/catalogue/__tests__/useCatalogueItemCaptureFlow.test.tsx
+src/features/catalogue/__tests__/useCatalogueItemsQuery.test.tsx
 src/features/catalogue/api/catalogueRegistry.ts
 src/features/catalogue/api/commitCatalogueItem.ts
 src/features/catalogue/api/extractCatalogueItem.ts
 src/features/catalogue/api/missingFields.ts
-src/features/catalogue/components/CatalogueItemsSection.tsx
+src/features/catalogue/api/toStyleRecord.ts
 src/features/catalogue/components/CatalogueTypePicker.tsx
 src/features/catalogue/components/SchemaReviewForm.tsx
 src/features/catalogue/hooks/useCatalogueItemCaptureFlow.ts
+src/features/catalogue/hooks/useCatalogueItemsQuery.ts
 src/features/catalogue/index.ts
 src/features/catalogue/screens/CatalogueItemCaptureFlow.tsx
 src/features/catalogue/screens/CatalogueItemReviewScreen.tsx
