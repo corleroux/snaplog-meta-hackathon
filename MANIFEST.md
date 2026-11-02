@@ -1,22 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `6e2d596a9e28940559642daa1fce4c3e0495b359`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `9e445056f6f7b93d072709f303b7bcf57488ce1a`.
 
 - Branch: `staging`
-- Date: 2026-11-02T07:45:39+02:00
+- Date: 2026-11-02T14:46:43+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `46c5f043780580a2a6557a95de247cb9da864abd`
-- Incremental patch: `0022-46c5f04-to-6e2d596.patch`
+- Previous source commit: `6e2d596a9e28940559642daa1fce4c3e0495b359`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-src/components/layout/EntityCard.tsx
-src/features/vendors/api/__tests__/vendorListDetail.test.ts
-src/features/vendors/api/vendorMappers.ts
-src/features/vendors/api/vendorRepository.ts
-src/features/vendors/screens/VendorListScreen.tsx
-src/features/vendors/screens/__tests__/VendorListScreen.test.tsx
-src/types/vendor.ts
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -301,6 +295,7 @@ docs/plans/DESIGN-02C2b-catalogue-vendor-detail.md
 docs/plans/DESIGN-02C2c-video-review.md
 docs/plans/FR-CAT-01-item-detail.md
 docs/plans/FR-CAT-01-unified-styles.md
+docs/plans/FR-CAT-01b-vendor-list-polish.md
 docs/plans/FR-MOD-01-provider-interface.md
 docs/plans/FR-MOD-02a-muse-spark-provider.md
 docs/plans/FR-MOD-02b-spark-open-modal.md
