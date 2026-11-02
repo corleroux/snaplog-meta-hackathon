@@ -1,16 +1,22 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `46c5f043780580a2a6557a95de247cb9da864abd`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `6e2d596a9e28940559642daa1fce4c3e0495b359`.
 
 - Branch: `staging`
-- Date: 2026-11-02T06:49:44+02:00
+- Date: 2026-11-02T07:45:39+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `da7ddfea5c3283e815c25c90c5a8defcf97bf3b0`
-- Incremental patch: `0021-da7ddfe-to-46c5f04.patch`
+- Previous source commit: `46c5f043780580a2a6557a95de247cb9da864abd`
+- Incremental patch: `0022-46c5f04-to-6e2d596.patch`
 
 ## Baseline files modified since previous submission update
 
-AGENTS.md
+src/components/layout/EntityCard.tsx
+src/features/vendors/api/__tests__/vendorListDetail.test.ts
+src/features/vendors/api/vendorMappers.ts
+src/features/vendors/api/vendorRepository.ts
+src/features/vendors/screens/VendorListScreen.tsx
+src/features/vendors/screens/__tests__/VendorListScreen.test.tsx
+src/types/vendor.ts
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 

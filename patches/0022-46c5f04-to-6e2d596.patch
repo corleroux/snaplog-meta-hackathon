@@ -1,0 +1,444 @@
+diff --git a/src/components/layout/EntityCard.tsx b/src/components/layout/EntityCard.tsx
+index 4ea2137..49e1d8c 100644
+--- a/src/components/layout/EntityCard.tsx
++++ b/src/components/layout/EntityCard.tsx
+@@ -328,7 +328,7 @@ export function EntityCard({
+       className={cn(
+         'bg-white rounded-xl',
+         'border border-gray-200',
+-        'flex items-center',
++        'flex items-center min-w-0',
+         className,
+       )}
+       data-testid={testId}
+@@ -350,6 +350,7 @@ export function EntityCard({
+           isNavigable && [
+             'cursor-pointer',
+             'hover:bg-gray-50 active:bg-gray-100',
++            'outline-none focus-visible:ring-2 focus-visible:ring-orange-500/40',
+             'transition-colors duration-150',
+             'rounded-l-xl',               // only left corners when overflow button present
+             !hasActions && 'rounded-xl',
+@@ -375,7 +376,7 @@ export function EntityCard({
+         <div className="flex-1 min-w-0">
+           {/* Title row: title + badge */}
+           <div className="flex items-center gap-2 min-w-0">
+-            <span className="text-sm font-semibold text-gray-900 truncate">
++            <span className="text-sm font-semibold text-gray-900 truncate min-w-0">
+               {title}
+             </span>
+             {badge && (
+diff --git a/src/features/vendors/api/__tests__/vendorListDetail.test.ts b/src/features/vendors/api/__tests__/vendorListDetail.test.ts
+index 41f0ae9..dfc35a4 100644
+--- a/src/features/vendors/api/__tests__/vendorListDetail.test.ts
++++ b/src/features/vendors/api/__tests__/vendorListDetail.test.ts
+@@ -85,24 +85,30 @@ describe('SupabaseVendorRepository.getByEvent', () => {
+       makeImageRow({ vendor_id: 'v-1', is_primary: true }),
+       makeImageRow({ vendor_id: 'v-2', is_primary: false }),
+     ]
+-    // style counts for the style-count badge (added in commit 2da4496)
+-    const styleCounts = [
++    // item counts for the item-count badge: fabric rows + catalogue rows are summed
++    const fabricRows = [
+       { vendor_id: 'v-1' },
+       { vendor_id: 'v-1' },
+       { vendor_id: 'v-2' },
+     ]
++    const catalogueRows = [
++      { vendor_id: 'v-1' },
++    ]
+ 
+     // Call 1: vendors query
+     const vendorsChain = createMockSupabaseChain({ data: vendors, error: null })
+     // Call 2 (Promise.all[0]): vendor_images query
+     const imagesChain = createMockSupabaseChain({ data: images, error: null })
+-    // Call 3 (Promise.all[1]): fabric_styles style-count query
+-    const styleCountChain = createMockSupabaseChain({ data: styleCounts, error: null })
++    // Call 3 (Promise.all[1]): fabric_styles item-count query
++    const fabricCountChain = createMockSupabaseChain({ data: fabricRows, error: null })
++    // Call 4 (Promise.all[2]): catalogue_items item-count query
++    const catalogueCountChain = createMockSupabaseChain({ data: catalogueRows, error: null })
+ 
+     mockFrom
+       .mockReturnValueOnce(vendorsChain as any)
+       .mockReturnValueOnce(imagesChain as any)
+-      .mockReturnValueOnce(styleCountChain as any)
++      .mockReturnValueOnce(fabricCountChain as any)
++      .mockReturnValueOnce(catalogueCountChain as any)
+ 
+     const result = await repository.getByEvent('evt-1')
+ 
+@@ -111,20 +117,57 @@ describe('SupabaseVendorRepository.getByEvent', () => {
+     expect(result[0].images).toHaveLength(1)
+     expect(result[1].companyName).toBe('Vendor B')
+     expect(result[1].images).toHaveLength(1)
++    // v-1: 2 fabric + 1 catalogue = 3; v-2: 1 fabric + 0 catalogue = 1
++    expect(result[0].itemCount).toBe(3)
++    expect(result[1].itemCount).toBe(1)
+     expect(mockFrom).toHaveBeenCalledWith('vendors')
+     expect(mockFrom).toHaveBeenCalledWith('vendor_images')
+     expect(mockFrom).toHaveBeenCalledWith('fabric_styles')
++    expect(mockFrom).toHaveBeenCalledWith('catalogue_items')
++  })
++
++  it('[FR-CAT-01b] sums fabric styles and catalogue items into itemCount', async () => {
++    const vendors = [
++      makeVendorRow({ id: 'v-1', company_name: 'Fabric Vendor' }),
++      makeVendorRow({ id: 'v-2', company_name: 'Garment Vendor' }),
++    ]
++    const fabricRows = [
++      { vendor_id: 'v-1' },
++      { vendor_id: 'v-1' },
++    ]
++    const catalogueRows = [
++      { vendor_id: 'v-1' },
++      { vendor_id: 'v-2' },
++      { vendor_id: 'v-2' },
++    ]
++
++    mockFrom
++      .mockReturnValueOnce(createMockSupabaseChain({ data: vendors, error: null }) as any)
++      .mockReturnValueOnce(createMockSupabaseChain({ data: [], error: null }) as any)
++      .mockReturnValueOnce(createMockSupabaseChain({ data: fabricRows, error: null }) as any)
++      .mockReturnValueOnce(createMockSupabaseChain({ data: catalogueRows, error: null }) as any)
++
++    const result = await repository.getByEvent('evt-1')
++
++    // Mixed vendor: 2 fabric rows + 1 catalogue row = 3
++    expect(result[0].itemCount).toBe(3)
++    // Garment/video-only vendor: 0 fabric + 2 catalogue rows = 2
++    // (previously read 0 because only fabric_styles was counted)
++    expect(result[1].itemCount).toBe(2)
++    expect(mockFrom).toHaveBeenCalledWith('catalogue_items')
+   })
+ 
+   it('should return empty array when no vendors found', async () => {
+     const vendorsChain = createMockSupabaseChain({ data: [], error: null })
+     const imagesChain = createMockSupabaseChain({ data: [], error: null })
+-    const styleCountChain = createMockSupabaseChain({ data: [], error: null })
++    const fabricCountChain = createMockSupabaseChain({ data: [], error: null })
++    const catalogueCountChain = createMockSupabaseChain({ data: [], error: null })
+ 
+     mockFrom
+       .mockReturnValueOnce(vendorsChain as any)
+       .mockReturnValueOnce(imagesChain as any)
+-      .mockReturnValueOnce(styleCountChain as any)
++      .mockReturnValueOnce(fabricCountChain as any)
++      .mockReturnValueOnce(catalogueCountChain as any)
+ 
+     const result = await repository.getByEvent('evt-empty')
+     expect(result).toEqual([])
+@@ -146,14 +189,19 @@ describe('SupabaseVendorRepository.getByEvent', () => {
+     const vendors = [makeVendorRow({ id: 'v-1' })]
+     const vendorsChain = createMockSupabaseChain({ data: vendors, error: null })
+     const imagesChain = createMockSupabaseChain({ data: [], error: null })
++    const fabricCountChain = createMockSupabaseChain({ data: [], error: null })
++    const catalogueCountChain = createMockSupabaseChain({ data: [], error: null })
+ 
+     mockFrom
+       .mockReturnValueOnce(vendorsChain as any)
+       .mockReturnValueOnce(imagesChain as any)
++      .mockReturnValueOnce(fabricCountChain as any)
++      .mockReturnValueOnce(catalogueCountChain as any)
+ 
+     const result = await repository.getByEvent('evt-1')
+     expect(result).toHaveLength(1)
+     expect(result[0].images).toEqual([])
++    expect(result[0].itemCount).toBe(0)
+   })
+ })
+ 
+diff --git a/src/features/vendors/api/vendorMappers.ts b/src/features/vendors/api/vendorMappers.ts
+index 65fbfb3..ba3065a 100644
+--- a/src/features/vendors/api/vendorMappers.ts
++++ b/src/features/vendors/api/vendorMappers.ts
+@@ -75,7 +75,7 @@ export const VENDOR_APP_TO_DB_KEYS: Record<string, string> = {
+  * - field-name overrides (contact_person→contactName, website_url→website)
+  * - value transforms (brand_names array→comma string, null→empty string defaults)
+  */
+-export function vendorRowToVendorRecord(row: Vendor, images: VendorImage[] = [], styleCount?: number): VendorRecord {
++export function vendorRowToVendorRecord(row: Vendor, images: VendorImage[] = [], itemCount?: number): VendorRecord {
+   const mapped = toCamelCase(row) as Record<string, unknown>
+ 
+   // Apply field-name overrides: rename DB-specific keys to app-facing names
+@@ -109,7 +109,7 @@ export function vendorRowToVendorRecord(row: Vendor, images: VendorImage[] = [],
+     extractionMeta: extractExtractionMetaFromVendorRow(row),
+     extractionConfidence: row.extraction_confidence ?? null,
+     version: row.version,
+-    styleCount,
++    itemCount,
+     sortOrder: (row as any).sort_order ?? 0,
+   }
+ }
+diff --git a/src/features/vendors/api/vendorRepository.ts b/src/features/vendors/api/vendorRepository.ts
+index aafc09c..89f7fcc 100644
+--- a/src/features/vendors/api/vendorRepository.ts
++++ b/src/features/vendors/api/vendorRepository.ts
+@@ -67,8 +67,8 @@ export class SupabaseVendorRepository implements VendorRepository {
+ 
+     const vendorIds = vendors?.map(v => v.id) || []
+ 
+-    // Fetch images and style counts in parallel
+-    const [{ data: images }, { data: styleRows }] = await Promise.all([
++    // Fetch images and item counts in parallel
++    const [{ data: images }, { data: styleRows }, { data: catalogueRows }] = await Promise.all([
+       supabase
+         .from('vendor_images')
+         .select('*')
+@@ -80,6 +80,14 @@ export class SupabaseVendorRepository implements VendorRepository {
+         .select('vendor_id')
+         .in('vendor_id', vendorIds)
+         .is('deleted_at', null),
++      // Garment and video items land in catalogue_items once committed
++      // (commit-reviewed-catalogue-item); count active items only, matching
++      // the catalogue display query in useCatalogueItemsQuery.
++      supabase
++        .from('catalogue_items')
++        .select('vendor_id')
++        .in('vendor_id', vendorIds)
++        .eq('status', 'active'),
+     ])
+ 
+     // Group images by vendor
+@@ -89,14 +97,18 @@ export class SupabaseVendorRepository implements VendorRepository {
+       imagesByVendor.set(img.vendor_id, [...current, img])
+     })
+ 
+-    // Count styles per vendor
+-    const styleCountByVendor = new Map<string, number>()
+-    styleRows?.forEach(row => {
+-      styleCountByVendor.set(row.vendor_id, (styleCountByVendor.get(row.vendor_id) ?? 0) + 1)
+-    })
++    // Count items per vendor: fabric styles plus catalogue items
++    // (garments and video-derived items), so non-fabric vendors
++    // no longer report zero.
++    const itemCountByVendor = new Map<string, number>()
++    const addItemCount = (vendorId: string) => {
++      itemCountByVendor.set(vendorId, (itemCountByVendor.get(vendorId) ?? 0) + 1)
++    }
++    styleRows?.forEach(row => addItemCount(row.vendor_id))
++    catalogueRows?.forEach(row => addItemCount(row.vendor_id))
+ 
+     return vendors?.map(v =>
+-      vendorRowToVendorRecord(v, imagesByVendor.get(v.id), styleCountByVendor.get(v.id) ?? 0)
++      vendorRowToVendorRecord(v, imagesByVendor.get(v.id), itemCountByVendor.get(v.id) ?? 0)
+     ) || []
+   }
+ 
+diff --git a/src/features/vendors/screens/VendorListScreen.tsx b/src/features/vendors/screens/VendorListScreen.tsx
+index eeb8b06..50055f2 100644
+--- a/src/features/vendors/screens/VendorListScreen.tsx
++++ b/src/features/vendors/screens/VendorListScreen.tsx
+@@ -12,7 +12,7 @@
+  */
+ 
+ import { type ReactNode, useMemo, startTransition, useDeferredValue } from 'react'
+-import { Building2, Search, Loader2, Pencil, Archive, GripVertical } from 'lucide-react'
++import { Building2, Search, Loader2, Pencil, Archive } from 'lucide-react'
+ import {
+   DndContext,
+   closestCenter,
+@@ -263,7 +263,7 @@ export function VendorListScreen({
+         )}
+ 
+         {/* ── Scrollable vendor list ── */}
+-        <main className="flex-1 overflow-y-auto px-4 pt-3">
++        <main className="flex-1 overflow-y-auto overflow-x-clip px-4 pt-3">
+           <PullToRefresh onRefresh={async () => { await onRefresh?.() }}>
+             {/* Optional search bar */}
+             {!isEmpty && onSearchChange && (
+@@ -329,7 +329,7 @@ export function VendorListScreen({
+                         title={vendor.companyName}
+                         subtitle={getVendorSubtitle(vendor)}
+                         badge={vendor.status === 'archived' ? { label: 'Archived', variant: 'archived' } : undefined}
+-                        countChip={vendor.styleCount !== undefined ? `${vendor.styleCount} ${vendor.styleCount === 1 ? 'style' : 'styles'}` : undefined}
++                        countChip={vendor.itemCount !== undefined ? `${vendor.itemCount} ${vendor.itemCount === 1 ? 'item' : 'items'}` : undefined}
+                         leadingIcon={<Building2 className="w-5 h-5" />}
+                         onPress={() => onVendorClick?.(vendor)}
+                         actions={[
+@@ -436,45 +436,49 @@ function SortableVendorItem({ vendor, onEditVendor, onVendorClick }: SortableVen
+     zIndex: isDragging ? 1000 : 'auto',
+   }
+ 
++  // Gripless reorder (FR-CAT-01b): the whole card is the drag activator.
++  // PointerSensor (distance 8) keeps tap-to-open intact and TouchSensor
++  // (delay 150, tolerance 5) means quick scrolls/swipes never lift the
++  // card — only a long-press does. `attributes` keeps the card root
++  // focusable so KeyboardSensor reorder still works. Three-gesture
++  // coexistence (scroll vs long-press-drag vs swipe) is gated on
++  // on-device QA per the FR-CAT-01b plan.
+   return (
+-    <div ref={setNodeRef} style={style} className="flex items-center gap-1">
+-      <div
+-        {...attributes}
+-        {...listeners}
+-        className="flex-shrink-0 touch-none min-w-[36px] min-h-[36px] flex items-center justify-center cursor-grab active:cursor-grabbing"
++    <div
++      ref={setNodeRef}
++      style={style}
++      {...attributes}
++      {...listeners}
++      className="min-w-0 touch-none rounded-xl cursor-grab outline-none focus-visible:ring-2 focus-visible:ring-orange-500 active:cursor-grabbing"
++    >
++      <SwipeActions
++        key={vendor.id}
++        onEdit={onEditVendor ? () => onEditVendor(vendor) : undefined}
+       >
+-        <GripVertical className="w-5 h-5 text-muted-foreground" />
+-      </div>
+-      <div className="flex-1 min-w-0">
+-        <SwipeActions
+-          key={vendor.id}
+-          onEdit={onEditVendor ? () => onEditVendor(vendor) : undefined}
+-        >
+-          <EntityCard
+-            title={vendor.companyName}
+-            subtitle={getVendorSubtitle(vendor)}
+-            badge={vendor.status === 'archived' ? { label: 'Archived', variant: 'archived' } : undefined}
+-            countChip={vendor.styleCount !== undefined ? `${vendor.styleCount} ${vendor.styleCount === 1 ? 'style' : 'styles'}` : undefined}
+-            leadingIcon={<Building2 className="w-5 h-5" />}
+-            onPress={() => onVendorClick?.(vendor)}
+-            actions={[
+-              ...(onEditVendor ? [{
+-                label: 'Edit',
+-                icon: <Pencil className="w-[18px] h-[18px]" />,
+-                onPress: () => onEditVendor(vendor),
+-              }] : []),
+-              {
+-                label: 'Archive',
+-                icon: <Archive className="w-[18px] h-[18px]" />,
+-                onPress: () => {
+-                  // Archive action - to be implemented
+-                },
++        <EntityCard
++          title={vendor.companyName}
++          subtitle={getVendorSubtitle(vendor)}
++          badge={vendor.status === 'archived' ? { label: 'Archived', variant: 'archived' } : undefined}
++          countChip={vendor.itemCount !== undefined ? `${vendor.itemCount} ${vendor.itemCount === 1 ? 'item' : 'items'}` : undefined}
++          leadingIcon={<Building2 className="w-5 h-5" />}
++          onPress={() => onVendorClick?.(vendor)}
++          actions={[
++            ...(onEditVendor ? [{
++              label: 'Edit',
++              icon: <Pencil className="w-[18px] h-[18px]" />,
++              onPress: () => onEditVendor(vendor),
++            }] : []),
++            {
++              label: 'Archive',
++              icon: <Archive className="w-[18px] h-[18px]" />,
++              onPress: () => {
++                // Archive action - to be implemented
+               },
+-            ]}
+-            testId={`vendor-card-${vendor.id}`}
+-          />
+-        </SwipeActions>
+-      </div>
++            },
++          ]}
++          testId={`vendor-card-${vendor.id}`}
++        />
++      </SwipeActions>
+     </div>
+   )
+ }
+diff --git a/src/features/vendors/screens/__tests__/VendorListScreen.test.tsx b/src/features/vendors/screens/__tests__/VendorListScreen.test.tsx
+index 9f9e6a1..e471b33 100644
+--- a/src/features/vendors/screens/__tests__/VendorListScreen.test.tsx
++++ b/src/features/vendors/screens/__tests__/VendorListScreen.test.tsx
+@@ -231,4 +231,80 @@ describe('VendorListScreen', () => {
+     expect(screen.getByTestId('custom-header')).toBeInTheDocument()
+     expect(screen.queryByText('Vendors')).not.toBeInTheDocument()
+   })
++
++  it('[FR-CAT-01b] renders singular item count chip', () => {
++    const vendors = [
++      createVendorRecord({ companyName: 'Alpha Fabrics', itemCount: 1 }),
++    ]
++
++    renderWithRouter(<VendorListScreen vendors={vendors} />)
++
++    expect(screen.getByText('1 item')).toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01b] renders plural item count chip', () => {
++    const vendors = [
++      createVendorRecord({ companyName: 'Alpha Fabrics', itemCount: 5 }),
++    ]
++
++    renderWithRouter(<VendorListScreen vendors={vendors} />)
++
++    expect(screen.getByText('5 items')).toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01b] renders zero item count chip', () => {
++    const vendors = [
++      createVendorRecord({ companyName: 'Alpha Fabrics', itemCount: 0 }),
++    ]
++
++    renderWithRouter(<VendorListScreen vendors={vendors} />)
++
++    expect(screen.getByText('0 items')).toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01b] hides count chip when itemCount is undefined', () => {
++    const vendors = [
++      createVendorRecord({ companyName: 'Alpha Fabrics' }),
++    ]
++    expect(vendors[0].itemCount).toBeUndefined()
++
++    renderWithRouter(<VendorListScreen vendors={vendors} />)
++
++    expect(screen.getByText('Alpha Fabrics')).toBeInTheDocument()
++    expect(screen.queryByText(/\d+ items?/)).not.toBeInTheDocument()
++  })
++
++  it('[FR-CAT-01b] reorder mode renders no grip handle', () => {
++    const vendors = [
++      createVendorRecord({ id: 'v-1', companyName: 'Alpha Fabrics' }),
++      createVendorRecord({ id: 'v-2', companyName: 'Beta Textiles' }),
++    ]
++
++    const { container } = renderWithRouter(
++      <VendorListScreen vendors={vendors} onReorder={vi.fn()} />
++    )
++
++    expect(screen.getByText('Alpha Fabrics')).toBeInTheDocument()
++    // Gripless reorder: no GripVertical icon anywhere in reorder mode
++    expect(container.querySelector('.lucide-grip-vertical')).toBeNull()
++  })
++
++  it('[FR-CAT-01b] reorder mode makes the whole card the drag activator', () => {
++    const vendors = [
++      createVendorRecord({ id: 'v-1', companyName: 'Alpha Fabrics' }),
++      createVendorRecord({ id: 'v-2', companyName: 'Beta Textiles' }),
++    ]
++
++    renderWithRouter(
++      <VendorListScreen vendors={vendors} onReorder={vi.fn()} />
++    )
++
++    // dnd-kit sortable attributes/listeners live on the card wrapper root
++    const card = screen.getByTestId('vendor-card-v-1')
++    const sortableRoot = card.closest('[aria-roledescription="sortable"]')
++    expect(sortableRoot).not.toBeNull()
++    expect(sortableRoot).toHaveAttribute('role', 'button')
++    expect(sortableRoot).toHaveAttribute('tabindex', '0')
++    expect(sortableRoot).toHaveClass('touch-none')
++  })
+ })
+diff --git a/src/types/vendor.ts b/src/types/vendor.ts
+index b487843..e464d57 100644
+--- a/src/types/vendor.ts
++++ b/src/types/vendor.ts
+@@ -185,8 +185,8 @@ export interface VendorRecord {
+   /** Optimistic concurrency version counter */
+   version: number
+ 
+-  /** Number of styles captured for this vendor */
+-  styleCount?: number
++  /** Total items captured for this vendor (fabric styles + catalogue items) */
++  itemCount?: number
+ 
+   /** Manual sort order for drag-and-drop reordering (lower = earlier) */
+   sortOrder?: number
