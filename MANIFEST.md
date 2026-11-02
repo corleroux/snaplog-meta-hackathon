@@ -1,16 +1,67 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `9e445056f6f7b93d072709f303b7bcf57488ce1a`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `e9651597ac2e63bd5b0af15af304758b217a2771`.
 
 - Branch: `staging`
-- Date: 2026-11-02T14:46:43+02:00
+- Date: 2026-11-02T15:04:11+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `6e2d596a9e28940559642daa1fce4c3e0495b359`
-- Incremental patch: `_none_`
+- Previous source commit: `9e445056f6f7b93d072709f303b7bcf57488ce1a`
+- Incremental patch: `0023-9e44505-to-e965159.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+android/app/src/main/res/drawable-land-hdpi/splash.png
+android/app/src/main/res/drawable-land-mdpi/splash.png
+android/app/src/main/res/drawable-land-xhdpi/splash.png
+android/app/src/main/res/drawable-land-xxhdpi/splash.png
+android/app/src/main/res/drawable-land-xxxhdpi/splash.png
+android/app/src/main/res/drawable-port-hdpi/splash.png
+android/app/src/main/res/drawable-port-mdpi/splash.png
+android/app/src/main/res/drawable-port-xhdpi/splash.png
+android/app/src/main/res/drawable-port-xxhdpi/splash.png
+android/app/src/main/res/drawable-port-xxxhdpi/splash.png
+android/app/src/main/res/drawable/splash.png
+android/app/src/main/res/mipmap-hdpi/ic_launcher.png
+android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png
+android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png
+android/app/src/main/res/mipmap-mdpi/ic_launcher.png
+android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png
+android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png
+android/app/src/main/res/mipmap-xhdpi/ic_launcher.png
+android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png
+android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png
+android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png
+android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png
+android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png
+android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png
+android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
+android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png
+android/app/src/main/res/values/ic_launcher_background.xml
+index.html
+ios/App/App/Assets.xcassets/AppIcon.appiconset/AppIcon-512@2x.png
+ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-1.png
+ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732-2.png
+ios/App/App/Assets.xcassets/Splash.imageset/splash-2732x2732.png
+package.json
+pnpm-lock.yaml
+src/components/capture/CaptureSessionPanel.tsx
+src/components/capture/ImageStrip.tsx
+src/components/layout/BottomNavigation.tsx
+src/components/layout/PageHeader.tsx
+src/components/review/FieldWithConfidence.tsx
+src/components/ui/ErrorState.tsx
+src/components/ui/badge.tsx
+src/components/ui/button.tsx
+src/features/styles/components/ExtractionWarnings.tsx
+src/features/styles/components/StyleCard.tsx
+src/features/styles/screens/StyleCaptureFlow.tsx
+src/features/styles/screens/StyleDetailScreen.tsx
+src/features/styles/screens/StyleListScreen.tsx
+src/features/styles/screens/StyleReviewScreen.tsx
+src/features/vendors/screens/VendorDetailScreen.tsx
+src/features/vendors/screens/VendorReviewScreen.tsx
+src/main.tsx
+src/styles/globals.css
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -257,6 +308,12 @@ docs/brand/capture-image-page3-review3.png
 docs/brand/capture-page-1-image-attached.png
 docs/brand/capture-page-1.png
 docs/brand/catalogue-list.png
+docs/brand/exports/alt-text.txt
+docs/brand/exports/snaplog-fb-cover-851x315.png
+docs/brand/exports/snaplog-ig-post-1080x1080.png
+docs/brand/exports/snaplog-ig-story-1080x1920.png
+docs/brand/exports/snaplog-linkedin-cover-1512x256.png
+docs/brand/exports/snaplog-logo-sting-1920x1080.mp4
 docs/brand/garment-04-jean-jacket.jpg
 docs/brand/garment-07-gown.jpg
 docs/brand/garment-10-denim-80s.jpg
@@ -324,6 +381,7 @@ modal/sam_segment.js
 modal/test_sam_parser.py
 modal/uv.lock
 modal/video_pipeline.py
+public/favicon.png
 scripts/build-submission.sh
 scripts/run-benchmark.ts
 scripts/validate-eval-manifest.ts
