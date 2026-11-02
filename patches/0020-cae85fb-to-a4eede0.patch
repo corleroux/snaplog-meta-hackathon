@@ -1,0 +1,191 @@
+diff --git a/src/app/App.tsx b/src/app/App.tsx
+index e9982fe..742fbb1 100644
+--- a/src/app/App.tsx
++++ b/src/app/App.tsx
+@@ -19,6 +19,7 @@ import {
+   StyleDetailFromRouteWithProvider,
+   StyleEditScreenFromRouteWithProvider,
+   VariantEditScreenFromRouteWithProvider,
++  ItemDetailFromRouteWithProvider,
+ } from './styleRouteWrappers'
+ import {
+   CatalogueItemCaptureFlowFromRouteWithProvider,
+@@ -308,6 +309,20 @@ function App() {
+               }
+             />
+ 
++            {/* Catalogue item detail (FR-CAT-01) — garments/video. Static
++                segments (new/capture, video) rank above :itemId, so there
++                is no route conflict. */}
++            <Route
++              path="/events/:eventId/vendors/:vendorId/items/:itemId"
++              element={
++                <RequireAuth>
++                  <ErrorBoundary feature="item-detail">
++                    <ItemDetailFromRouteWithProvider />
++                  </ErrorBoundary>
++                </RequireAuth>
++              }
++            />
++
+             {/* Schema-driven item capture (FR-SCH-05) + rack video (FR-VID) */}
+             <Route
+               path="/events/:eventId/vendors/:vendorId/items/new/capture"
+diff --git a/src/app/styleRouteWrappers.tsx b/src/app/styleRouteWrappers.tsx
+index 43fd967..fd91222 100644
+--- a/src/app/styleRouteWrappers.tsx
++++ b/src/app/styleRouteWrappers.tsx
+@@ -1,5 +1,7 @@
+ import { useState, useMemo, useEffect } from 'react'
+ import { useParams, useNavigate } from 'react-router-dom'
++import { useQueryClient } from '@tanstack/react-query'
++import { supabase } from '@/lib/supabase/client'
+ import { useEventRole } from '@/features/auth'
+ import { useStylesQuery, useDeleteStyle, useToggleShortlist } from '@/features/styles/hooks'
+ import { useCatalogueItemsQuery } from '@/features/catalogue/hooks/useCatalogueItemsQuery'
+@@ -7,6 +9,8 @@ import { useVendorsQuery } from '@/features/vendors/hooks/useVendorQueries'
+ import { useRealtimeRefresh } from '@/lib/realtime'
+ import { StyleCaptureFlow, StyleListScreen, StyleDetailScreen, StyleEditScreen, VariantEditScreen, type StyleFilters } from '@/features/styles'
+ import { useStyleDetail } from '@/features/styles'
++import { useCatalogueItemDetail } from '@/features/catalogue/hooks/useCatalogueItemDetail'
++import { ItemDetailScreen } from '@/features/catalogue/screens/ItemDetailScreen'
+ import { StyleLoadingState, LoadingErrorState } from '@/components/ui'
+ import { ConfirmationDialog } from '@/components/feedback/ConfirmationDialog'
+ import type { VendorRecord } from '@/types/vendor'
+@@ -87,10 +91,14 @@ export function StyleListFromRouteWithProvider() {
+       onAddStyle={canEdit ? () => navigate(`/events/${eventId}/vendors/${vendorId}/items/new/capture`) : undefined}
+       // FAB keeps the fast legacy fabric path (FR-SCH-05b).
+       onFabPress={canEdit ? () => navigate(`/events/${eventId}/vendors/${vendorId}/styles/new/capture`) : undefined}
+-      // Catalogue rows (ci- prefix) have no detail/shortlist path yet —
+-      // guard fabric-only actions so they no-op instead of 404ing.
++      // Catalogue rows (ci- prefix) open the item detail page; fabric rows
++      // open the style detail page. Catalogue rows have no detail write
++      // paths, so their clicks are read-only navigation.
+       onStyleClick={(style) => {
+-        if (style.id.startsWith('ci-')) {return}
++        if (style.id.startsWith('ci-')) {
++          navigate(`/events/${eventId}/vendors/${vendorId}/items/${style.id.slice(3)}`)
++          return
++        }
+         navigate(`/events/${eventId}/vendors/${vendorId}/styles/${style.id}`)
+       }}
+       onVendorInfo={() => navigate(`/events/${eventId}/vendors/${vendorId}`)}
+@@ -242,4 +250,67 @@ export function VariantEditScreenFromRouteWithProvider() {
+       onBack={() => navigate(`/events/${eventId}/vendors/${vendorId}/styles/${styleId}`)}
+     />
+   )
+-}
+\ No newline at end of file
++}
++const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
++
++/**
++ * Catalogue item detail route wrapper (FR-CAT-01) — read-only + archive.
++ * The route carries the raw UUID; the `ci-` list prefix is stripped by the
++ * list click handler before navigating here.
++ */
++export function ItemDetailFromRouteWithProvider() {
++  const { eventId = '', vendorId = '', itemId = '' } = useParams()
++  const navigate = useNavigate()
++  const queryClient = useQueryClient()
++  const { canEdit } = useEventRole(eventId)
++  const stylesPath = `/events/${eventId}/vendors/${vendorId}/styles`
++
++  const validId = UUID_RE.test(itemId)
++  const { data, isLoading, error, refetch } = useCatalogueItemDetail(
++    vendorId,
++    validId ? itemId : '',
++  )
++
++  const [showArchiveConfirm, setShowArchiveConfirm] = useState(false)
++  const [archiving, setArchiving] = useState(false)
++
++  const handleArchive = async () => {
++    setArchiving(true)
++    try {
++      const { error: archiveError } = await supabase
++        .from('catalogue_items')
++        .update({ status: 'archived' })
++        .eq('id', itemId)
++        .eq('vendor_id', vendorId)
++      if (archiveError) {throw archiveError}
++      queryClient.invalidateQueries({ queryKey: ['catalogue-items', vendorId] })
++      queryClient.invalidateQueries({ queryKey: ['catalogue-item-detail', vendorId, itemId] })
++      navigate(stylesPath)
++    } catch {
++      setArchiving(false)
++      setShowArchiveConfirm(false)
++    }
++  }
++
++  return (
++    <>
++      <ItemDetailScreen
++        data={data ?? undefined}
++        loading={isLoading}
++        error={!validId ? 'Invalid item id' : (error instanceof Error ? error.message : null)}
++        onRefresh={() => { void refetch() }}
++        onBack={() => navigate(stylesPath)}
++        onArchive={canEdit ? () => setShowArchiveConfirm(true) : undefined}
++      />
++      <ConfirmationDialog
++        isOpen={showArchiveConfirm}
++        onClose={() => setShowArchiveConfirm(false)}
++        title="Archive Item"
++        description="Are you sure you want to archive this item? It will be hidden from the catalogue but the data will be preserved."
++        confirmText={archiving ? 'Archiving...' : 'Archive'}
++        onConfirm={() => { void handleArchive() }}
++        variant="destructive"
++      />
++    </>
++  )
++}
+diff --git a/src/features/styles/screens/StyleListScreen.tsx b/src/features/styles/screens/StyleListScreen.tsx
+index 81d7bb7..bb769f7 100644
+--- a/src/features/styles/screens/StyleListScreen.tsx
++++ b/src/features/styles/screens/StyleListScreen.tsx
+@@ -295,7 +295,7 @@ export function StyleListScreen({
+               <SwipeActions key={style.id}>
+                 <StyleCard
+                   style={style}
+-                  onClick={isCatalogueRow ? undefined : onStyleClick}
++                  onClick={onStyleClick}
+                   onToggleShortlist={onToggleShortlist}
+                   shortlistable={!isCatalogueRow}
+                   badge={isCatalogueRow ? (
+diff --git a/src/features/styles/screens/__tests__/StyleListScreen.test.tsx b/src/features/styles/screens/__tests__/StyleListScreen.test.tsx
+index aac7b93..69c9258 100644
+--- a/src/features/styles/screens/__tests__/StyleListScreen.test.tsx
++++ b/src/features/styles/screens/__tests__/StyleListScreen.test.tsx
+@@ -10,7 +10,9 @@
+  * - Renders vendor name in header
+  * - Catalogue (`ci-`) rows render REVIEW / `{category} · AI` badges
+  *   (falling back to "AI Extracted" when category is missing) with no
+- *   shortlist heart and no detail navigation; fabric rows unchanged
++ *   shortlist heart; catalogue card clicks call onStyleClick (the route
++ *   wrapper strips `ci-` and navigates to the item detail page);
++ *   fabric rows unchanged
+  */
+ 
+ import { describe, it, expect, vi, beforeEach } from 'vitest'
+@@ -267,7 +269,7 @@ describe('StyleListScreen', () => {
+     expect(screen.queryByLabelText(/shortlist/i)).not.toBeInTheDocument()
+   })
+ 
+-  it('[FR-CAT-01] catalogue rows do not trigger detail navigation on click', () => {
++  it('[FR-CAT-01] catalogue card click calls onStyleClick with the ci- style (wrapper routes to detail)', () => {
+     const catalogueStyle = createStyleRecord({
+       id: 'ci-item-3',
+       styleName: 'Wool Coat',
+@@ -282,7 +284,10 @@ describe('StyleListScreen', () => {
+     )
+ 
+     fireEvent.click(screen.getByText('Wool Coat'))
+-    expect(mockOnStyleClick).not.toHaveBeenCalled()
++    expect(mockOnStyleClick).toHaveBeenCalledTimes(1)
++    expect(mockOnStyleClick).toHaveBeenCalledWith(
++      expect.objectContaining({ id: 'ci-item-3' })
++    )
+   })
+ 
+   it('[FR-CAT-01] fabric rows keep the shortlist heart and click behaviour', () => {
