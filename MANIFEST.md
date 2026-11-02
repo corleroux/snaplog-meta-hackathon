@@ -1,19 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `a4eede04508c37c0a8d3107868fb37fdaf9a9097`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `5cd2929ac06ee37c932b61fa021a6b31fcba8e03`.
 
 - Branch: `staging`
-- Date: 2026-11-02T04:02:04+02:00
+- Date: 2026-11-02T04:07:57+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `cae85fb6ff3bbc55fea2e882d3cff5cdedcf1207`
-- Incremental patch: `0020-cae85fb-to-a4eede0.patch`
+- Previous source commit: `a4eede04508c37c0a8d3107868fb37fdaf9a9097`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-src/app/App.tsx
-src/app/styleRouteWrappers.tsx
-src/features/styles/screens/StyleListScreen.tsx
-src/features/styles/screens/__tests__/StyleListScreen.test.tsx
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
