@@ -1,16 +1,17 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `cefef1648594886f25de87f32e6b0ebbf739f233`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `9809de25a12f46e29badfaf58c2d12da7ea7f6fe`.
 
 - Branch: `staging`
-- Date: 2026-11-03T08:59:26+02:00
+- Date: 2026-11-03T17:24:23+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `29003eeca5ae52505b30411f36c3756c0473177e`
-- Incremental patch: `_none_`
+- Previous source commit: `cefef1648594886f25de87f32e6b0ebbf739f233`
+- Incremental patch: `0025-cefef16-to-9809de2.patch`
 
 ## Baseline files modified since previous submission update
 
-_none_
+.gitignore
+package.json
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
@@ -291,6 +292,8 @@ docs/brand/snaplog-splash-light-2732.png
 docs/brand/snaplog-splash-light-2732.svg
 docs/brand/vendor-list-page.png
 docs/brand/vendor-page.png
+docs/demo-video/BRIEF.md
+docs/plans/DEMO-01-video-production.md
 docs/plans/DESIGN-01-opendesign-brief.md
 docs/plans/DESIGN-02A-brand-assets.md
 docs/plans/DESIGN-02B-social-sting.md
@@ -320,6 +323,7 @@ docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-01b-submission-narrative.md
 docs/plans/SUB-02-demo-writeup-submission.md
 docs/roadmap/README.md
+e2e/demo/demo-capture.demo.ts
 e2e/garment-capture.spec.ts
 e2e/helpers/catalogue-mock-helper.ts
 eval/README.md
@@ -331,6 +335,7 @@ modal/sam_segment.js
 modal/test_sam_parser.py
 modal/uv.lock
 modal/video_pipeline.py
+playwright.demo.config.ts
 public/favicon.png
 scripts/build-submission.sh
 scripts/run-benchmark.ts
