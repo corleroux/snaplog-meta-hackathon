@@ -14,14 +14,20 @@ The headline change: the extraction runtime moves off the pre-existing Gemini ba
 
 | Capability | Status |
 |---|---|
-| Schema registry — catalogue types as config | In progress |
-| Provider interface — runtime moved from Gemini to Muse Spark (+ open-weights leg) | In progress |
-| Garments as a second category, no code changes | In progress |
-| Video pipeline with SAM 3.1 item isolation on Modal | In progress |
-| Benchmark runner: accuracy, latency, cost | In progress |
-| Schema-driven review UI | In progress |
+| Schema registry — catalogue types as config | Shipped |
+| Provider interface — runtime moved from Gemini to Muse Spark (+ open-weights leg) | Shipped |
+| Garments as a second category, no code changes | Shipped |
+| Video pipeline with SAM 3.1 item isolation on Modal | Shipped (Jobs: LIVE) |
+| Benchmark runner: accuracy, latency, cost | Shipped (dry-run numbers in write-up; live run Tue) |
+| Schema-driven review UI | Shipped |
 
 Built with **Muse Spark Open** and Meta's model stack.
+
+## Demo and write-up
+
+- **Write-up:** [`docs/WRITEUP.md`](new-files/docs/WRITEUP.md) (architecture, model attribution, benchmark method + numbers).
+- **Demo script:** [`docs/DEMO-SCRIPT.md`](new-files/docs/DEMO-SCRIPT.md) (3-minute rubric-mapped script).
+- **Demo video:** recorded Tue Nov 3 — link added here on publication.
 
 ## Rebuild the demo
 
