@@ -1,72 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `29003eeca5ae52505b30411f36c3756c0473177e`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `cefef1648594886f25de87f32e6b0ebbf739f233`.
 
 - Branch: `staging`
-- Date: 2026-11-02T16:29:49+02:00
+- Date: 2026-11-03T08:59:26+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `e9651597ac2e63bd5b0af15af304758b217a2771`
-- Incremental patch: `0024-e965159-to-29003ee.patch`
+- Previous source commit: `29003eeca5ae52505b30411f36c3756c0473177e`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-src/components/activity/ActivityFeed.tsx
-src/components/capture/ImageThumbnail.tsx
-src/components/capture/UploadQueueIndicator.tsx
-src/components/layout/AppShell.tsx
-src/components/layout/BottomNavigation.tsx
-src/components/layout/EmptyState.tsx
-src/components/layout/EntityCard.tsx
-src/components/layout/PageHeader.tsx
-src/components/mobile/SwipeActions.tsx
-src/components/offline/OfflineIndicator.tsx
-src/components/offline/SyncProgressIndicator.tsx
-src/components/review/ConfidenceIndicator.tsx
-src/components/review/ConfidenceSummary.tsx
-src/components/review/ModifiedIndicator.tsx
-src/components/ui/ConfidenceBadge.tsx
-src/components/ui/EmptyState.tsx
-src/components/ui/badge.tsx
-src/components/ui/form/EditScreenStates.tsx
-src/components/ui/navigation-footer.tsx
-src/components/ui/toast.tsx
-src/features/admin/components/TaskCard.tsx
-src/features/admin/components/TaskColumn.tsx
-src/features/analytics/CaptureProgressMetrics.tsx
-src/features/analytics/ExtractionQualityReport.tsx
-src/features/analytics/PopularStyles.tsx
-src/features/analytics/VendorAttendanceList.tsx
-src/features/events/components/EventMembersSection.tsx
-src/features/events/screens/EventCreateScreen.tsx
-src/features/events/screens/EventsScreen.tsx
-src/features/feedback/FeedbackOverlay.tsx
-src/features/notifications/components/NotificationCenter.tsx
-src/features/settings/screens/SettingsScreen.tsx
-src/features/styles/components/AddInventoryModal.tsx
-src/features/styles/components/AddPriceModal.tsx
-src/features/styles/components/AddVariantModal.tsx
-src/features/styles/components/CompactStyleCard.tsx
-src/features/styles/components/StyleCard.tsx
-src/features/styles/components/StyleImageGallery.tsx
-src/features/styles/components/StyleInventorySection.tsx
-src/features/styles/components/StyleVariantsSection.tsx
-src/features/styles/components/edit/ExtractionPanel.tsx
-src/features/styles/components/review/ReviewImageSection.tsx
-src/features/styles/screens/ProcessingScreen.tsx
-src/features/styles/screens/StyleEditScreen.tsx
-src/features/styles/screens/StyleListScreen.tsx
-src/features/styles/screens/StyleSuccessScreen.tsx
-src/features/styles/screens/VariantEditScreen.tsx
-src/features/vendors/components/ExtractionInfoPanel.tsx
-src/features/vendors/components/VendorCard.tsx
-src/features/vendors/components/VendorImagesSection.tsx
-src/features/vendors/components/review/VendorReviewImageSection.tsx
-src/features/vendors/screens/ProcessingScreen.tsx
-src/features/vendors/screens/VendorCaptureFlow.tsx
-src/features/vendors/screens/VendorEditScreen.tsx
-src/features/vendors/screens/VendorListScreen.tsx
-src/features/vendors/screens/VendorSuccessScreen.tsx
-src/styles/globals.css
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
