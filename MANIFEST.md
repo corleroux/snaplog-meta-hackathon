@@ -1,17 +1,16 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `9809de25a12f46e29badfaf58c2d12da7ea7f6fe`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `ee6c241ea56f45a2ff7886071be94839b8a2f1af`.
 
 - Branch: `staging`
-- Date: 2026-11-03T17:24:23+02:00
+- Date: 2026-11-04T03:28:00+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `cefef1648594886f25de87f32e6b0ebbf739f233`
-- Incremental patch: `0025-cefef16-to-9809de2.patch`
+- Previous source commit: `9809de25a12f46e29badfaf58c2d12da7ea7f6fe`
+- Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
 
-.gitignore
-package.json
+_none_
 
 ## Files added since baseline (copied verbatim to `new-files/`)
 
