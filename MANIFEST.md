@@ -1,11 +1,11 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `1457fd775a4f69a317dff2dfdc8cc44ac5b43725`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `20c09f60f07ce974eafe56fc18b53c7aa1a727e6`.
 
 - Branch: `staging`
-- Date: 2026-11-04T13:35:27+02:00
+- Date: 2026-11-05T00:07:59+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `ee6c241ea56f45a2ff7886071be94839b8a2f1af`
+- Previous source commit: `1457fd775a4f69a317dff2dfdc8cc44ac5b43725`
 - Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
@@ -244,6 +244,9 @@ docs/DEMO-SCRIPT.md
 docs/DESIGN-01-review-feedback.md
 docs/PRD.md
 docs/WRITEUP.md
+docs/assets/jacket-back.png
+docs/assets/jacket-front.png
+docs/assets/jacket-label.png
 docs/benchmark-results.md
 docs/brand/DESIGN-HANDOFF.md
 docs/brand/DESIGN-MANIFEST.json
@@ -292,6 +295,22 @@ docs/brand/snaplog-splash-light-2732.svg
 docs/brand/vendor-list-page.png
 docs/brand/vendor-page.png
 docs/demo-video/BRIEF.md
+docs/launch/00-README.md
+docs/launch/01-x-viral-post.md
+docs/launch/02-youtube-pack.md
+docs/launch/03-platform-suite.md
+docs/launch/04-backabuddy-pack.md
+docs/launch/05-share-pleas.md
+docs/launch/art/alt-text.txt
+docs/launch/art/snaplog-fb-cover-851x315.png
+docs/launch/art/snaplog-ig-post-1080x1080.png
+docs/launch/art/snaplog-ig-story-1080x1920.png
+docs/launch/art/snaplog-linkedin-cover-1512x256.png
+docs/launch/art/snaplog-logo-sting-1920x1080.mp4
+docs/launch/art/snaplog-profile-512.png
+docs/launch/art/tiktok-cover-1080x1920.png
+docs/launch/art/x-header-1500x500.png
+docs/launch/art/youtube-thumbnail-1280x720.png
 docs/plans/DEMO-01-video-production.md
 docs/plans/DESIGN-01-opendesign-brief.md
 docs/plans/DESIGN-02A-brand-assets.md
@@ -318,6 +337,7 @@ docs/plans/FR-SCH-05b-route-wiring.md
 docs/plans/FR-VID-modal-jobs-check.md
 docs/plans/FR-VID-video-pipeline.md
 docs/plans/README.md
+docs/plans/SOCIAL-01-launch-pack.md
 docs/plans/SUB-01-submission-repo.md
 docs/plans/SUB-01b-submission-narrative.md
 docs/plans/SUB-02-demo-writeup-submission.md
