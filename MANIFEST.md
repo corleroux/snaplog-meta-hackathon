@@ -1,11 +1,11 @@
 # Submission manifest
 
-Generated from [snaplog](https://github.com/corleroux/snaplog) at `d27819f88d514916f921cc794e00f1caf237469f`.
+Generated from [snaplog](https://github.com/corleroux/snaplog) at `d2d1f7e896498084d7bffdf8f01d76fb6e5c2097`.
 
 - Branch: `staging`
-- Date: 2026-11-05T00:41:04+02:00
+- Date: 2026-11-05T03:25:27+02:00
 - Baseline: [hackathon-baseline](https://github.com/corleroux/snaplog/releases/tag/hackathon-baseline)
-- Previous source commit: `20c09f60f07ce974eafe56fc18b53c7aa1a727e6`
+- Previous source commit: `d27819f88d514916f921cc794e00f1caf237469f`
 - Incremental patch: `_none_`
 
 ## Baseline files modified since previous submission update
@@ -244,9 +244,18 @@ docs/DEMO-SCRIPT.md
 docs/DESIGN-01-review-feedback.md
 docs/PRD.md
 docs/WRITEUP.md
+docs/assets/Garments.m4a
+docs/assets/Rack-walk-video.m4a
+docs/assets/Whats next and close.m4a
+docs/assets/before-this-week.m4a
+docs/assets/benchmarks.m4a
+docs/assets/fabric-tag.m4a
+docs/assets/fabric.webp
+docs/assets/hook.m4a
 docs/assets/jacket-back.png
 docs/assets/jacket-front.png
 docs/assets/jacket-label.png
+docs/assets/rack-walk.mp4
 docs/benchmark-results.md
 docs/brand/DESIGN-HANDOFF.md
 docs/brand/DESIGN-MANIFEST.json
